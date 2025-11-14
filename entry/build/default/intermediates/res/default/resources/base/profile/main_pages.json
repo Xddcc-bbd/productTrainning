@@ -1,0 +1,10 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/GradingPage",
+    "pages/AssignmentDetailPage",
+    "pages/GradingStandardPage",
+    "pages/WorkPreviewPage",
+    "pages/BatchProcessPage"
+  ]
+}
