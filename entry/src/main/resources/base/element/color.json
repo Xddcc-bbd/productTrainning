@@ -1,0 +1,27 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
+    }, {
+      "name": "primary_color",
+      "value": "#1890FF"
+    },
+    {
+      "name": "success_color",
+      "value": "#52C41A"
+    },
+    {
+      "name": "warning_color",
+      "value": "#FAAD14"
+    },
+    {
+      "name": "error_color",
+      "value": "#FF4D4F"
+    },
+    {
+      "name": "background_color",
+      "value": "#F5F5F5"
+    }
+  ]
+}

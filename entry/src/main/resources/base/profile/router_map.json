@@ -1,0 +1,24 @@
+{
+  "routerMap": [
+    {
+      "name": "评价与反馈首页",
+      "page": "pages/Index"
+    },
+    {
+      "name": "作业列表",
+      "pageSourceFile": "pages/AssignmentListPage"
+    },
+    {
+      "name": "作业批改",
+      "page": "pages/GradingPage"
+    },
+    {
+      "name": "批量反馈",
+      "page": "pages/BatchFeedbackPage"
+    },
+    {
+      "name": "推荐学生",
+      "page": "pages/StudentRecommendationPage"
+    }
+  ]
+}

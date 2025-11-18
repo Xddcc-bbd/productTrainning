@@ -1,0 +1,16 @@
+{
+  "targets": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"    // 表示将该模块下的"default" Target打包到"default" Product中
+          ]
+        }
+      ]
+    }
+  ]
+}

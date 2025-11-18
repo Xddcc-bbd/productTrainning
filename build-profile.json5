@@ -1,0 +1,42 @@
+{
+  "app": {
+    "signingConfigs": [],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "6.0.1(21)",
+        "compatibleSdkVersion": "5.1.0(18)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcEntrance": "./ets/application/EntryAbility.ts",
+      "description": "$string:entry_desc",
+      "mainElement": "EntryAbility",
+      "deviceTypes": [
+        "phone",
+        "tablet"
+      ],
+      "type": "entry",
+      "buildMode": "debug"
+    }
+  ]
+}

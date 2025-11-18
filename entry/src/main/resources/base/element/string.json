@@ -1,0 +1,36 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "label"
+    },
+    {
+      "name": "app_name",
+      "value": "评价与反馈系统"
+    },
+    {
+      "name": "assignment_list",
+      "value": "作业列表"
+    },
+    {
+      "name": "grading",
+      "value": "作业批改"
+    },
+    {
+      "name": "batch_feedback",
+      "value": "批量反馈"
+    },
+    {
+      "name": "student_recommendation",
+      "value": "推荐学生"
+    }
+  ]
+}
