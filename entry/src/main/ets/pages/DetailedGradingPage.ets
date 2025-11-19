@@ -3,6 +3,8 @@
 import { Submission } from '../model/Submission';
 import { Grade } from '../model/Grade';
 import { gradingService } from '../service/GradingService';
+import { assignmentService } from '../service/AssignmentService';
+import router from '@ohos.router';
 
 @Component
 struct ScoreInput {
@@ -108,44 +110,92 @@ struct VoiceCommentRecorder {
 @Entry
 @Component
 struct DetailedGradingPage {
-  @State submission: Submission = (() => {
-    const s = new Submission();
-    s.submissionId = 1;
-    s.assignmentId = 1;
-    s.studentId = 'S001';
-    s.studentName = '张三';
-    s.contentUrl = 'https://example.com/submission1';
-    s.submissionTime = '2024-01-15 10:30:00';
-    s.status = 'submitted';
-    s.isLate = false;
-    s.createdTime = '2024-01-15 10:30:00';
-    return s;
-  })();
-  
-  @State grade: Grade = (() => {
-    const g = new Grade();
-    g.gradeId = 1;
-    g.submissionId = 1;
-    g.teacherId = 'T001';
-    g.score = 0;
-    g.aiScore = 92;
-    g.finalScore = 0;
-    g.textComment = '';
-    g.aiTextComment = '语法正确，结构合理';
-    g.voiceCommentUrl = '';
-    g.isTeacherRecommended = false;
-    g.gradingTime = '';
-    g.createdTime = '';
-    return g;
-  })();
-  
+  @State submission: Submission = new Submission();
+  @State grade: Grade = new Grade();
   @State teacherScore: number = 0;
   @State maxScore: number = 100;
   @State showAIComment: boolean = true;
+  @State isLoading: boolean = false;
+  @State errorMessage: string = '';
+  
+  // 从路由参数获取
+  private submissionId: number = 0;
   
   aboutToAppear() {
-    // 初始化时可以加载实际数据
-    console.log('加载作业详情和AI评分建议');
+    // 获取路由参数
+    const params = router.getParams() as Record<string, Object>;
+    if (params && params['submissionId']) {
+      this.submissionId = params['submissionId'] as number;
+      console.log('获取到提交ID:', this.submissionId);
+      this.loadGradeDetail();
+    } else {
+      console.warn('⚠️ 未提供提交ID，使用默认数据');
+      // 使用默认数据供测试
+      this.loadDefaultData();
+    }
+  }
+  
+  // 加载评分详情
+  async loadGradeDetail() {
+    try {
+      this.isLoading = true;
+      console.log(`开始加载提交 ${this.submissionId} 的评分详情...`);
+      
+      // 获取评分详情
+      const gradeDetail = await gradingService.getGradeDetail(this.submissionId);
+      if (gradeDetail) {
+        this.grade = gradeDetail;
+        this.teacherScore = gradeDetail.score || 0;
+        console.log('✅ 评分详情加载成功');
+        console.log('当前分数:', this.teacherScore);
+        console.log('AI分数:', this.grade.aiScore);
+      }
+      
+      // 获取提交详情
+      // 需要先通过assignmentId获取submissions，然后找到对应的submission
+      // 这里简化处理，直接使用grade中的信息
+      console.log('提交ID:', this.grade.submissionId);
+      
+    } catch (error) {
+      console.error('❌ 加载评分详情失败:', error);
+      this.errorMessage = `加载失败: ${error}`;
+    } finally {
+      this.isLoading = false;
+    }
+  }
+  
+  // 加载默认数据（用于测试）
+  loadDefaultData() {
+    this.submission = (() => {
+      const s = new Submission();
+      s.submissionId = 1;
+      s.assignmentId = 1;
+      s.studentId = 'S001';
+      s.studentName = '张三';
+      s.contentUrl = 'https://example.com/submission1';
+      s.submissionTime = '2024-01-15 10:30:00';
+      s.status = 'submitted';
+      s.isLate = false;
+      s.createdTime = '2024-01-15 10:30:00';
+      return s;
+    })();
+    
+    this.grade = (() => {
+      const g = new Grade();
+      g.gradeId = 1;
+      g.submissionId = 1;
+      g.teacherId = 'T001';
+      g.score = 0;
+      g.aiScore = 92;
+      g.finalScore = 0;
+      g.textComment = '';
+      g.aiTextComment = '语法正确，结构合理';
+      g.voiceCommentUrl = '';
+      g.isTeacherRecommended = false;
+      g.gradingTime = '';
+      g.createdTime = '';
+      return g;
+    })();
   }
   
   async saveGrade() {

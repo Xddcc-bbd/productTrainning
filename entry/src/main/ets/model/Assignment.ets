@@ -1,5 +1,7 @@
 // entry/src/main/ets/model/Assignment.ets
 
+import { DateUtils } from '../common/DateUtils';
+
 export class Assignment {
   assignmentId: number = 0;
   courseId: number = 0;
@@ -51,26 +53,26 @@ export class Assignment {
 
   // 检查是否已截止
   get isEnded(): boolean {
-    const now = new Date().getTime();
-    const endTime = new Date(this.endTime).getTime();
-    return now > endTime;
+    return DateUtils.isExpired(this.endTime);
   }
 
   // 获取剩余时间
   get remainingTime(): string {
-    const now = new Date().getTime();
-    const endTime = new Date(this.endTime).getTime();
-    const diff = endTime - now;
+    return DateUtils.getRemainingTime(this.endTime);
+  }
 
-    if (diff <= 0) return '已截止';
+  // 格式化开始时间
+  get formattedStartTime(): string {
+    return DateUtils.formatISODate(this.startTime);
+  }
 
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  // 格式化截止时间
+  get formattedEndTime(): string {
+    return DateUtils.formatISODate(this.endTime);
+  }
 
-    if (days > 0) {
-      return `剩余${days}天${hours}小时`;
-    } else {
-      return `剩余${hours}小时`;
-    }
+  // 格式化创建时间
+  get formattedCreatedTime(): string {
+    return DateUtils.formatISODate(this.createdTime);
   }
 }

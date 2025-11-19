@@ -27,6 +27,10 @@ interface AIGradingResult {
   suggestions: string[];
 }
 
+interface RecommendRequest {
+  isRecommended: boolean;
+}
+
 // 定义评分统计接口
 interface GradingStats {
   totalSubmissions: number;
@@ -157,9 +161,12 @@ export class GradingService {
    */
   async markAsRecommended(submissionId: number): Promise<boolean> {
     try {
+      const request: RecommendRequest = {
+        isRecommended: true
+      };
       await this.http.put<void>(
         ApiConfig.MARK_RECOMMEND(submissionId),
-        { isRecommended: true }
+        request
       );
       return true;
     } catch (error) {
@@ -173,9 +180,12 @@ export class GradingService {
    */
   async unmarkAsRecommended(submissionId: number): Promise<boolean> {
     try {
+      const request: RecommendRequest = {
+        isRecommended: false
+      };
       await this.http.put<void>(
         ApiConfig.MARK_RECOMMEND(submissionId),
-        { isRecommended: false }
+        request
       );
       return true;
     } catch (error) {

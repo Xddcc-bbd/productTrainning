@@ -2,6 +2,8 @@
 
 import { Student } from '../model/Student';
 import { studentService } from '../service/StudentService';
+import { assignmentService } from '../service/AssignmentService';
+import { Assignment } from '../model/Assignment';
 
 @Component
 struct StudentItem {
@@ -107,25 +109,50 @@ struct StudentRecommendationPage {
   @State students: Student[] = [];
   @State recommendedStudents: Student[] = [];
   @State showAllStudents: boolean = true;
+  @State isLoading: boolean = false;
+  @State assignments: Assignment[] = [];
+  @State selectedAssignmentId: number = 0;
   
   aboutToAppear() {
+    this.loadAssignments();
     this.loadStudents();
     this.loadRecommendedStudents();
   }
   
+  async loadAssignments() {
+    try {
+      console.log('加载作业列表...');
+      this.assignments = await assignmentService.getTeacherAssignments('teacher_zhao');
+      if (this.assignments.length > 0) {
+        this.selectedAssignmentId = this.assignments[0].assignmentId;
+      }
+      console.log(`✅ 加载到 ${this.assignments.length} 个作业`);
+    } catch (error) {
+      console.error('加载作业列表失败:', error);
+    }
+  }
+  
   async loadStudents() {
     try {
+      this.isLoading = true;
+      console.log('加载学生列表...');
+      // 加载课程学生，这里使用courseId=1
       this.students = await studentService.getStudents(1);
+      console.log(`✅ 加载到 ${this.students.length} 个学生`);
     } catch (error) {
-      console.error('加载学生列表失败:', error);
+      console.error('❌ 加载学生列表失败:', error);
+    } finally {
+      this.isLoading = false;
     }
   }
   
   async loadRecommendedStudents() {
     try {
-      this.recommendedStudents = await studentService.getRecommendedStudents('T001');
+      console.log('加载推荐学生列表...');
+      this.recommendedStudents = await studentService.getRecommendedStudents('teacher_zhao');
+      console.log(`✅ 加载到 ${this.recommendedStudents.length} 个推荐学生`);
     } catch (error) {
-      console.error('加载推荐学生列表失败:', error);
+      console.error('❌ 加载推荐学生列表失败:', error);
     }
   }
   

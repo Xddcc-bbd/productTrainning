@@ -2,6 +2,8 @@
 
 import { BatchFeedback } from '../model/BatchFeedback';
 import { batchFeedbackService } from '../service/BatchFeedbackService';
+import { assignmentService } from '../service/AssignmentService';
+import { Assignment } from '../model/Assignment';
 
 @Component
 struct FeedbackItem {
@@ -67,16 +69,44 @@ struct BatchFeedbackPage {
   @State newFeedback: BatchFeedback = new BatchFeedback();
   @State feedbackTypes: string[] = ['common_issue', 'suggestion', 'praise'];
   @State selectedType: string = 'common_issue';
+  @State isLoading: boolean = false;
+  @State assignments: Assignment[] = [];
+  @State selectedAssignmentId: number = 0;
   
   aboutToAppear() {
+    this.loadAssignments();
     this.loadFeedbacks();
+  }
+  
+  async loadAssignments() {
+    try {
+      console.log('加载作业列表...');
+      this.assignments = await assignmentService.getTeacherAssignments('teacher_zhao');
+      if (this.assignments.length > 0) {
+        this.selectedAssignmentId = this.assignments[0].assignmentId;
+      }
+      console.log(`✅ 加载到 ${this.assignments.length} 个作业`);
+    } catch (error) {
+      console.error('加载作业列表失败:', error);
+    }
   }
   
   async loadFeedbacks() {
     try {
-      this.feedbacks = await batchFeedbackService.getCommonFeedbacks(1);
+      this.isLoading = true;
+      console.log('加载批量反馈列表...');
+      // 如果有选中的作业，加载该作业的反馈
+      if (this.selectedAssignmentId > 0) {
+        this.feedbacks = await batchFeedbackService.getCommonFeedbacks(this.selectedAssignmentId);
+      } else {
+        // 否则加载默认作业的反馈
+        this.feedbacks = await batchFeedbackService.getCommonFeedbacks(1);
+      }
+      console.log(`✅ 加载到 ${this.feedbacks.length} 条反馈`);
     } catch (error) {
-      console.error('加载反馈列表失败:', error);
+      console.error('❌ 加载反馈列表失败:', error);
+    } finally {
+      this.isLoading = false;
     }
   }
   
@@ -88,7 +118,7 @@ struct BatchFeedbackPage {
       this.newFeedback.createdBy = 'T001';
       this.newFeedback.createdTime = new Date().toISOString();
       
-      const result = await batchFeedbackService.createBatchFeedback(this.newFeedback);
+      const result = await batchFeedbackService.addBatchFeedback(this.newFeedback);
       if (result) {
         console.log('创建反馈成功');
         this.showCreateForm = false;
@@ -111,7 +141,7 @@ struct BatchFeedbackPage {
       const submissionIds = [1, 2, 3]; 
       
       for (const feedbackId of this.selectedFeedbackIds) {
-        const result = await batchFeedbackService.applyBatchFeedbackToSubmissions(feedbackId, submissionIds);
+        const result = await batchFeedbackService.applyBatchFeedback(1, submissionIds, feedbackId);
         if (result) {
           console.log('应用反馈成功:', feedbackId);
         }
