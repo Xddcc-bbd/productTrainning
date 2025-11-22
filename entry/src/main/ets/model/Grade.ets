@@ -1,8 +1,8 @@
 // entry/src/main/ets/model/Grade.ets
 
 export class Grade {
-  gradeId: number = 0;
-  submissionId: number = 0;
+  gradeId: string = '';
+  submissionId: string = '';
   teacherId: string = '';
   score: number = 0;
   aiScore: number = 0;
@@ -10,7 +10,7 @@ export class Grade {
   textComment: string = '';
   aiTextComment: string = '';
   voiceCommentUrl: string = '';
-  isTeacherRecommended: boolean = false;
+  isTeacherRecommended: number = 0; // 0:未推荐1:推荐
   gradingTime: string = '';
   createdTime: string = '';
 

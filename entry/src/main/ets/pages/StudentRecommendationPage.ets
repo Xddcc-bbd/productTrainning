@@ -4,11 +4,13 @@ import { Student } from '../model/Student';
 import { studentService } from '../service/StudentService';
 import { assignmentService } from '../service/AssignmentService';
 import { Assignment } from '../model/Assignment';
+import router from '@ohos.router';
 
 @Component
 struct StudentItem {
   @Prop student: Student;
   @State isRecommended: boolean = false;
+  onRecommendationChanged: () => void = () => {};
   
   aboutToAppear() {
     this.isRecommended = this.student.isRecommended;
@@ -18,17 +20,19 @@ struct StudentItem {
     try {
       let result: boolean;
       if (this.isRecommended) {
-        result = await studentService.cancelRecommendStudent('T001', this.student.studentId);
+        result = await studentService.cancelRecommendStudent('teacher_zhao', this.student.studentId);
       } else {
-        result = await studentService.recommendStudent('T001', this.student.studentId, '表现优秀');
+        result = await studentService.recommendStudent('teacher_zhao', this.student.studentId, '表现优秀');
       }
       
       if (result) {
         this.isRecommended = !this.isRecommended;
-        console.log('推荐状态更新成功');
+        console.log('✅ 推荐状态更新成功');
+        // 通知父组件刷新
+        this.onRecommendationChanged();
       }
     } catch (error) {
-      console.error('更新推荐状态失败:', error);
+      console.error('❌ 更新推荐状态失败:', error);
     }
   }
   
@@ -111,7 +115,7 @@ struct StudentRecommendationPage {
   @State showAllStudents: boolean = true;
   @State isLoading: boolean = false;
   @State assignments: Assignment[] = [];
-  @State selectedAssignmentId: number = 0;
+  @State selectedAssignmentId: string = '';
   
   aboutToAppear() {
     this.loadAssignments();
@@ -136,8 +140,8 @@ struct StudentRecommendationPage {
     try {
       this.isLoading = true;
       console.log('加载学生列表...');
-      // 加载课程学生，这里使用courseId=1
-      this.students = await studentService.getStudents(1);
+      // 加载课程学生，这里使用courseId='course_01'
+      this.students = await studentService.getStudents('course_01');
       console.log(`✅ 加载到 ${this.students.length} 个学生`);
     } catch (error) {
       console.error('❌ 加载学生列表失败:', error);
@@ -160,20 +164,18 @@ struct StudentRecommendationPage {
     Column() {
       // 顶部导航
       Row() {
-        Button('←')
-          .type(ButtonType.Normal)
-          .width(40)
-          .height(40)
+        Text('←')
+          .fontSize(24)
+          .fontColor('#1890FF')
           .onClick(() => {
-            // 返回上一页
-            console.log('返回上一页');
+            router.back();
           })
+          .margin({ right: 12 })
         
         Text('推荐学生')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
-          .textAlign(TextAlign.Center)
         
         Blank()
       }
@@ -228,6 +230,8 @@ struct StudentRecommendationPage {
           .margin({ left: 8 })
           .onClick(() => {
             this.showAllStudents = false;
+            // 切换到已推荐时，重新加载推荐列表
+            this.loadRecommendedStudents();
           })
       }
       .padding({ left: 16, right: 16 })
@@ -239,7 +243,13 @@ struct StudentRecommendationPage {
           ForEach(this.students, (student: Student, index: number) => {
             ListItem() {
               Column() {
-                StudentItem({ student: student })
+                StudentItem({ 
+                  student: student,
+                  onRecommendationChanged: () => {
+                    // 推荐状态变化后，重新加载数据
+                    this.loadRecommendedStudents();
+                  }
+                })
                 
                 Divider()
                   .color('#EEEEEE')
@@ -253,7 +263,13 @@ struct StudentRecommendationPage {
           ForEach(this.recommendedStudents, (student: Student, index: number) => {
             ListItem() {
               Column() {
-                StudentItem({ student: student })
+                StudentItem({ 
+                  student: student,
+                  onRecommendationChanged: () => {
+                    // 推荐状态变化后，重新加载数据
+                    this.loadRecommendedStudents();
+                  }
+                })
                 
                 Divider()
                   .color('#EEEEEE')

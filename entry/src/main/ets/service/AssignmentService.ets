@@ -6,7 +6,7 @@ import { ApiConfig } from '../common/ApiConfig';
 
 // 定义统计数据接口
 interface AssignmentStats {
-  assignmentId: number;
+  assignmentId: string;
   totalStudents: number;
   submittedCount: number;
   averageScore: number;
@@ -41,7 +41,7 @@ export class AssignmentService {
    * 根据ID获取作业详情
    * 对应后端: GET /api/v1/grading/assignment/{assignmentId}
    */
-  async getAssignmentById(assignmentId: number): Promise<Assignment | null> {
+  async getAssignmentById(assignmentId: string): Promise<Assignment | null> {
     try {
       const response = await this.http.get<Assignment>(ApiConfig.ASSIGNMENT_BY_ID(assignmentId));
       if (response) {
@@ -92,7 +92,7 @@ export class AssignmentService {
    * 更新作业
    * 对应后端: PUT /api/v1/grading/assignment/{assignmentId}
    */
-  async updateAssignment(assignmentId: number, assignment: Assignment): Promise<Assignment | null> {
+  async updateAssignment(assignmentId: string, assignment: Assignment): Promise<Assignment | null> {
     try {
       const response = await this.http.put<Assignment>(
         ApiConfig.UPDATE_ASSIGNMENT(assignmentId),
@@ -112,7 +112,7 @@ export class AssignmentService {
    * 删除作业
    * 对应后端: DELETE /api/v1/grading/assignment/{assignmentId}
    */
-  async deleteAssignment(assignmentId: number): Promise<boolean> {
+  async deleteAssignment(assignmentId: string): Promise<boolean> {
     try {
       await this.http.delete<void>(ApiConfig.DELETE_ASSIGNMENT(assignmentId));
       return true;
@@ -125,7 +125,7 @@ export class AssignmentService {
   /**
    * 获取课程作业统计
    */
-  async getCourseAssignments(courseId: number): Promise<Assignment[]> {
+  async getCourseAssignments(courseId: string): Promise<Assignment[]> {
     try {
       // 调用getAssignments获取所有作业，然后根据courseId过滤
       const allAssignments = await this.getAssignments();
@@ -139,7 +139,7 @@ export class AssignmentService {
   /**
    * 获取作业统计数据
    */
-  async getAssignmentStats(assignmentId: number): Promise<AssignmentStats> {
+  async getAssignmentStats(assignmentId: string): Promise<AssignmentStats> {
     try {
       const stats: AssignmentStats = {
         assignmentId: assignmentId,

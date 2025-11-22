@@ -119,13 +119,13 @@ struct DetailedGradingPage {
   @State errorMessage: string = '';
   
   // 从路由参数获取
-  private submissionId: number = 0;
+  private submissionId: string = '';
   
   aboutToAppear() {
     // 获取路由参数
     const params = router.getParams() as Record<string, Object>;
     if (params && params['submissionId']) {
-      this.submissionId = params['submissionId'] as number;
+      this.submissionId = params['submissionId'] as string;
       console.log('获取到提交ID:', this.submissionId);
       this.loadGradeDetail();
     } else {
@@ -168,22 +168,22 @@ struct DetailedGradingPage {
   loadDefaultData() {
     this.submission = (() => {
       const s = new Submission();
-      s.submissionId = 1;
-      s.assignmentId = 1;
+      s.submissionId = 'sub_01';
+      s.assignmentId = 'assign_01';
       s.studentId = 'S001';
       s.studentName = '张三';
       s.contentUrl = 'https://example.com/submission1';
       s.submissionTime = '2024-01-15 10:30:00';
       s.status = 'submitted';
-      s.isLate = false;
+      s.isLate = 0;
       s.createdTime = '2024-01-15 10:30:00';
       return s;
     })();
     
     this.grade = (() => {
       const g = new Grade();
-      g.gradeId = 1;
-      g.submissionId = 1;
+      g.gradeId = 'grade_01';
+      g.submissionId = 'sub_01';
       g.teacherId = 'T001';
       g.score = 0;
       g.aiScore = 92;
@@ -191,7 +191,7 @@ struct DetailedGradingPage {
       g.textComment = '';
       g.aiTextComment = '语法正确，结构合理';
       g.voiceCommentUrl = '';
-      g.isTeacherRecommended = false;
+      g.isTeacherRecommended = 0;
       g.gradingTime = '';
       g.createdTime = '';
       return g;
@@ -200,30 +200,49 @@ struct DetailedGradingPage {
   
   async saveGrade() {
     try {
-      // 同步分数
+      console.log('💾 开始保存评分...');
+      console.log('  submissionId:', this.submission.submissionId || this.grade.submissionId);
+      console.log('  teacherScore:', this.teacherScore);
+      
+      // 确保设置正确的teacherId
+      this.grade.teacherId = 'teacher_zhao';
+      this.grade.submissionId = this.submission.submissionId || this.grade.submissionId;
       this.grade.score = this.teacherScore;
-      // 保存评分
+      this.grade.finalScore = this.teacherScore;
+      
+      console.log('📦 发送评分数据:', {
+        submissionId: this.grade.submissionId,
+        teacherId: this.grade.teacherId,
+        score: this.grade.score,
+        finalScore: this.grade.finalScore,
+        textComment: this.grade.textComment
+      });
+      
       const result = await gradingService.submitGrade(this.grade);
       if (result) {
-        console.log('评分保存成功');
-        // 返回上一页或提示成功
+        console.log('✅ 评分保存成功');
+        // 返回上一页
+        router.back();
+      } else {
+        console.error('❌ 评分保存失败：后端返回 null');
       }
     } catch (error) {
-      console.error('评分保存失败:', error);
+      console.error('❌ 评分保存失败:', error);
+      this.errorMessage = `保存失败: ${error}`;
     }
   }
   
   async toggleRecommendation() {
     try {
       let result: boolean;
-      if (this.grade.isTeacherRecommended) {
+      if (this.grade.isTeacherRecommended === 1) {
         result = await gradingService.unmarkAsRecommended(this.submission.submissionId);
       } else {
         result = await gradingService.markAsRecommended(this.submission.submissionId);
       }
       
       if (result) {
-        this.grade.isTeacherRecommended = !this.grade.isTeacherRecommended;
+        this.grade.isTeacherRecommended = this.grade.isTeacherRecommended === 1 ? 0 : 1;
         console.log('推荐状态更新成功');
       }
     } catch (error) {
@@ -235,14 +254,18 @@ struct DetailedGradingPage {
     Column() {
       // 顶部导航
       Row() {
-        Button('←')
-          .type(ButtonType.Normal)
-          .width(40)
-          .height(40)
-          .onClick(() => {
-            // 返回上一页
-            console.log('返回上一页');
-          })
+        Row() {
+          Text('←')
+            .fontSize(24)
+            .fontColor('#333333')
+        }
+        .width(40)
+        .height(40)
+        .justifyContent(FlexAlign.Center)
+        .onClick(() => {
+          router.back();
+          console.log('返回上一页');
+        })
         
         Text(`评分 - ${this.submission.studentName}`)
           .fontSize(18)
@@ -251,12 +274,19 @@ struct DetailedGradingPage {
           .textAlign(TextAlign.Center)
         
         Button('保存')
-          .type(ButtonType.Normal)
+          .type(ButtonType.Capsule)
+          .backgroundColor('#1890FF')
+          .fontColor('#FFFFFF')
+          .fontSize(14)
+          .padding({ left: 16, right: 16 })
           .onClick(() => {
             this.saveGrade();
           })
       }
-      .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+      .backgroundColor('#FFFFFF')
+      .shadow({ radius: 4, color: '#10000000', offsetX: 0, offsetY: 2 })
       
       // 学生信息和作业信息
       Row() {
@@ -272,7 +302,7 @@ struct DetailedGradingPage {
         }
         .layoutWeight(1)
         
-        Toggle({ type: ToggleType.Switch, isOn: this.grade.isTeacherRecommended })
+        Toggle({ type: ToggleType.Switch, isOn: this.grade.isTeacherRecommended === 1 })
           .onChange((isOn: boolean) => {
             this.toggleRecommendation();
           })

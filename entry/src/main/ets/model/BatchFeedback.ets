@@ -1,10 +1,10 @@
 // entry/src/main/ets/model/BatchFeedback.ets
 
 export class BatchFeedback {
-  feedbackId: number = 0;
-  courseId: number = 0;
-  assignmentId: number = 0;
-  feedbackType: string = 'common_issue'; // common_issue, suggestion, praise
+  feedbackId: string = '';
+  courseId: string = '';
+  assignmentId: string = '';
+  feedbackType: string = 'common_issue'; // common_issue, suggestion, praise, template
   content: string = '';
   usedCount: number = 0;
   createdBy: string = '';

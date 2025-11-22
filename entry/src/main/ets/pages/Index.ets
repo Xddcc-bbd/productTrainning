@@ -7,23 +7,28 @@ struct Index {
   @State message: string = '评价与反馈系统';
 
   build() {
-    Column({ space: 20 }) {
+    Column({ space: 0 }) {
+      // 标题栏
       Text(this.message)
         .fontSize(30)
         .fontWeight(FontWeight.Bold)
-        .fontColor(Color.Blue)
+        .fontColor(Color.Black)
+        .padding(20)
+        .width('100%')
+        .textAlign(TextAlign.Center)
+        .backgroundColor('#F5F5F5')
 
       // 功能导航卡片
-      NavigationCard({ title: '作业批改', desc: '查看和批改学生作业', icon: '📝', page: 'pages/GradingManagementPage' })
-      NavigationCard({ title: '详细评分', desc: '详细评分和评语', icon: '✍️', page: 'pages/DetailedGradingPage' })
-      NavigationCard({ title: '批量反馈', desc: '批量处理相同类型作业', icon: '📋', page: 'pages/BatchFeedbackPage' })
-      NavigationCard({ title: '推荐优秀学生', desc: '标记和推荐表现优秀的学生', icon: '⭐', page: 'pages/StudentRecommendationPage' })
-      NavigationCard({ title: '评分标准', desc: '管理作业评分标准', icon: '📊', page: 'pages/GradingStandardPage' })
-
+      Column({ space: 15 }) {
+        NavigationCard({ title: '作业批改', desc: '查看和批改学生作业', icon: '📝', page: 'pages/GradingManagementPage' })
+        NavigationCard({ title: '推荐优秀学生', desc: '标记和推荐表现优秀的学生', icon: '⭐', page: 'pages/StudentRecommendationPage' })
+        NavigationCard({ title: '评分标准', desc: '管理作业评分标准', icon: '📊', page: 'pages/GradingStandardPage' })
+      }
+      .width('100%')
+      .padding({ left: 20, right: 20, top: 20, bottom: 20 })
     }
     .width('100%')
     .height('100%')
-    .padding(20)
     .backgroundColor('#F5F5F5')
   }
 }
@@ -39,20 +44,20 @@ struct NavigationCard {
   build() {
     Column({ space: 10 }) {
       Text(this.icon)
-        .fontSize(40)
+        .fontSize(32)
       Text(this.title)
-        .fontSize(20)
+        .fontSize(18)
         .fontWeight(FontWeight.Medium)
       Text(this.desc)
-        .fontSize(14)
+        .fontSize(13)
         .fontColor(Color.Gray)
         .textAlign(TextAlign.Center)
     }
     .width('90%')
-    .padding(20)
+    .padding(15)
     .backgroundColor(Color.White)
-    .borderRadius(15)
-    .shadow({ radius: 10, color: '#1A000000', offsetX: 0, offsetY: 4 })
+    .borderRadius(12)
+    .shadow({ radius: 8, color: '#1A000000', offsetX: 0, offsetY: 3 })
     .onClick(() => {
       if (this.params) {
         router.pushUrl({

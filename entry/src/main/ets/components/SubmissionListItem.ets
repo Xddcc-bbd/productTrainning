@@ -3,13 +3,13 @@
 import { Utils } from '../common/Utils';
 
 interface Submission {
-  submissionId: number;
+  submissionId: string;
   studentId: string;
   studentName: string;
   submissionTime: string;
   status: string;
   score?: number;
-  isTeacherRecommended?: boolean;
+  isTeacherRecommended?: number;
 }
 
 @Component

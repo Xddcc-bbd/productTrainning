@@ -4,7 +4,7 @@ import router from '@ohos.router';
 import { Utils } from '../common/Utils';
 
 interface Assignment {
-  assignmentId: number;
+  assignmentId: string;
   assignmentName: string;
   courseName: string;
   studentCount: number;
@@ -74,7 +74,7 @@ export struct AssignmentItem {
             } else {
               router.pushUrl({
                 url: 'pages/GradingPage',
-                params: { assignmentId: this.assignment.assignmentId.toString() }
+                params: { assignmentId: this.assignment.assignmentId }
               });
             }
           })

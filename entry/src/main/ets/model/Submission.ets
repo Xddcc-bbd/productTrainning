@@ -1,20 +1,20 @@
 // entry/src/main/ets/model/Submission.ets
 
 export class Submission {
-  submissionId: number = 0;
-  assignmentId: number = 0;
+  submissionId: string = '';
+  assignmentId: string = '';
   studentId: string = '';
   studentName: string = '';
-  teamId?: number;
+  teamId?: string;
   contentUrl: string = '';
+  contributionRate: number = 1.00;
   submissionTime: string = '';
-  status: string = 'submitted'; // submitted, grading, graded, returned
+  status: string = 'submitted'; // submitted, late
   actualDuration: number = 0;
-  isLate: boolean = false;
-  createdTime: string = '';
-  contributionRate: number = 100;
+  isLate: number = 0;
   likeCount: number = 0;
   favoriteCount: number = 0;
+  createdTime: string = '';
 
   constructor(data?: Partial<Submission>) {
     if (data) {

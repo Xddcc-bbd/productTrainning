@@ -4,11 +4,12 @@ import { BatchFeedback } from '../model/BatchFeedback';
 import { batchFeedbackService } from '../service/BatchFeedbackService';
 import { assignmentService } from '../service/AssignmentService';
 import { Assignment } from '../model/Assignment';
+import router from '@ohos.router';
 
 @Component
 struct FeedbackItem {
   @Prop feedback: BatchFeedback;
-  @Link selectedFeedbackIds: number[];
+  @Link selectedFeedbackIds: string[];
   
   build() {
     Row() {
@@ -64,14 +65,14 @@ struct FeedbackItem {
 @Component
 struct BatchFeedbackPage {
   @State feedbacks: BatchFeedback[] = [];
-  @State selectedFeedbackIds: number[] = [];
+  @State selectedFeedbackIds: string[] = [];
   @State showCreateForm: boolean = false;
   @State newFeedback: BatchFeedback = new BatchFeedback();
   @State feedbackTypes: string[] = ['common_issue', 'suggestion', 'praise'];
   @State selectedType: string = 'common_issue';
   @State isLoading: boolean = false;
   @State assignments: Assignment[] = [];
-  @State selectedAssignmentId: number = 0;
+  @State selectedAssignmentId: string = '';
   
   aboutToAppear() {
     this.loadAssignments();
@@ -96,11 +97,11 @@ struct BatchFeedbackPage {
       this.isLoading = true;
       console.log('加载批量反馈列表...');
       // 如果有选中的作业，加载该作业的反馈
-      if (this.selectedAssignmentId > 0) {
+      if (this.selectedAssignmentId) {
         this.feedbacks = await batchFeedbackService.getCommonFeedbacks(this.selectedAssignmentId);
       } else {
         // 否则加载默认作业的反馈
-        this.feedbacks = await batchFeedbackService.getCommonFeedbacks(1);
+        this.feedbacks = await batchFeedbackService.getCommonFeedbacks('assign_01');
       }
       console.log(`✅ 加载到 ${this.feedbacks.length} 条反馈`);
     } catch (error) {
@@ -112,8 +113,8 @@ struct BatchFeedbackPage {
   
   async createFeedback() {
     try {
-      this.newFeedback.courseId = 1;
-      this.newFeedback.assignmentId = 1;
+      this.newFeedback.courseId = 'course_01';
+      this.newFeedback.assignmentId = 'assign_01';
       this.newFeedback.feedbackType = this.selectedType;
       this.newFeedback.createdBy = 'T001';
       this.newFeedback.createdTime = new Date().toISOString();
@@ -138,10 +139,10 @@ struct BatchFeedbackPage {
     
     try {
       // 这里应该传入实际的作业ID列表
-      const submissionIds = [1, 2, 3]; 
+      const submissionIds = ['sub_01', 'sub_02', 'sub_03']; 
       
       for (const feedbackId of this.selectedFeedbackIds) {
-        const result = await batchFeedbackService.applyBatchFeedback(1, submissionIds, feedbackId);
+        const result = await batchFeedbackService.applyBatchFeedback(submissionIds);
         if (result) {
           console.log('应用反馈成功:', feedbackId);
         }
@@ -159,20 +160,18 @@ struct BatchFeedbackPage {
     Column() {
       // 顶部导航
       Row() {
-        Button('←')
-          .type(ButtonType.Normal)
-          .width(40)
-          .height(40)
+        Text('←')
+          .fontSize(24)
+          .fontColor('#1890FF')
           .onClick(() => {
-            // 返回上一页
-            console.log('返回上一页');
+            router.back();
           })
+          .margin({ right: 12 })
         
         Text('批量反馈')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
-          .textAlign(TextAlign.Center)
         
         // 条件渲染按钮
         if (this.showCreateForm) {
