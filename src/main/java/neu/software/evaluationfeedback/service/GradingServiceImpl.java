@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 @Service
 public class GradingServiceImpl implements GradingService {
@@ -20,49 +22,65 @@ public class GradingServiceImpl implements GradingService {
     private final GradeMapper gradeMapper;
     private final BatchFeedbackMapper batchFeedbackMapper;
     private final AnnotationMapper annotationMapper;
-    private final GradingStandardMapper gradingStandardMapper;
     private final AssignmentMapper assignmentMapper;
+    private final UserMapper userMapper;
 
     @Autowired
-    public GradingServiceImpl(SubmissionMapper submissionMapper, GradeMapper gradeMapper, BatchFeedbackMapper batchFeedbackMapper, AnnotationMapper annotationMapper, GradingStandardMapper gradingStandardMapper, AssignmentMapper assignmentMapper) {
+    public GradingServiceImpl(SubmissionMapper submissionMapper, GradeMapper gradeMapper, BatchFeedbackMapper batchFeedbackMapper, AnnotationMapper annotationMapper, AssignmentMapper assignmentMapper, UserMapper userMapper) {
         this.submissionMapper = submissionMapper;
         this.gradeMapper = gradeMapper;
         this.batchFeedbackMapper = batchFeedbackMapper;
         this.annotationMapper = annotationMapper;
-        this.gradingStandardMapper = gradingStandardMapper;
         this.assignmentMapper = assignmentMapper;
+        this.userMapper = userMapper;
     }
 
-    private void updateScoreForSubmission(Integer submissionId, BigDecimal score) {
-        Grade grade = gradeMapper.findBySubmissionId(submissionId);
-        if (grade == null) {
-            // 创建新评分记录
-            grade = new Grade();
-            grade.setSubmissionId(submissionId);
-            grade.setFinalScore(score);
-            grade.setGradingTime(new Date());
-            gradeMapper.insert(grade);
-        } else {
-            grade.setFinalScore(score);
-            grade.setGradingTime(new Date());
-            gradeMapper.update(grade);
-        }
-    }
+
     @Override
-    public List<SubmissionDetailDTO> getSubmissionsForGrading(Integer assignmentId) {
-        // 1. 查询所有提交和学生信息
-        List<SubmissionStudentDTO> submissions = submissionMapper.findSubmissionsWithStudentByAssignmentId(assignmentId);
+    public List<SubmissionDetailDTO> getSubmissionsForGrading(String assignmentId) {
+        try {
+            // 1. 查询所有提交和学生信息
+            List<Submission> submissions = submissionMapper.findSubmissionsWithStudentByAssignmentId(assignmentId);
+            
+            if (submissions == null || submissions.isEmpty()) {
+                return new java.util.ArrayList<>();
+            }
 
-        // 2. 遍历列表，为每个提交查询对应的评分 (N+1查询，但逻辑清晰)
-        //    (如果性能要求高，可以在SQL层面优化，但MyBatis注解实现复杂)
-        return submissions.stream()
-                .map(submission -> {
-                    // 3. 查询该提交是否已有评分
-                    Grade grade = gradeMapper.findBySubmissionId(submission.getSubmissionId());
-                    // 4. 组装成 DTO
-                    return new SubmissionDetailDTO(submission, grade);
-                })
-                .collect(Collectors.toList());
+            // 2. 遍历列表，为每个提交查询对应的评分
+            return submissions.stream()
+                    .map(submission -> {
+                        try {
+                            // 创建DTO并设置学生名（暂时使用student_id）
+                            SubmissionStudentDTO dto = new SubmissionStudentDTO();
+                            dto.setSubmissionId(submission.getSubmissionId());
+                            dto.setAssignmentId(submission.getAssignmentId());
+                            dto.setStudentId(submission.getStudentId());
+                            dto.setTeamId(submission.getTeamId());
+                            dto.setContentUrl(submission.getContentUrl());
+                            dto.setSubmissionTime(submission.getSubmissionTime());
+                            dto.setStatus(submission.getStatus());
+                            dto.setActualDuration(submission.getActualDuration());
+                            dto.setIsLate(submission.getIsLate());
+                            dto.setCreatedTime(submission.getCreatedTime());
+                            dto.setStudentName(submission.getStudentId()); // 暂时使用student_id
+                            
+                            // 3. 查询该提交是否已有评分
+                            Grade grade = gradeMapper.findBySubmissionId(submission.getSubmissionId());
+                            // 4. 组装成 DTO
+                            return new SubmissionDetailDTO(dto, grade);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            SubmissionStudentDTO dto = new SubmissionStudentDTO();
+                            dto.setSubmissionId(submission.getSubmissionId());
+                            dto.setStudentName(submission.getStudentId());
+                            return new SubmissionDetailDTO(dto, null);
+                        }
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        }
     }
 
     @Override
@@ -90,6 +108,7 @@ public class GradingServiceImpl implements GradingService {
             // 3. 新增
             Grade newGrade = new Grade();
             newGrade.setSubmissionId(gradeRequest.getSubmissionId());
+            newGrade.setGradeId(java.util.UUID.randomUUID().toString());
             newGrade.setTeacherId(gradeRequest.getTeacherId());
             newGrade.setFinalScore(gradeRequest.getFinalScore());
             newGrade.setTextComment(gradeRequest.getTextComment());
@@ -108,13 +127,14 @@ public class GradingServiceImpl implements GradingService {
     }
 
     @Override
-    public List<BatchFeedback> getBatchFeedbacks(Integer assignmentId) {
+    public List<BatchFeedback> getBatchFeedbacks(String assignmentId) {
         return batchFeedbackMapper.findByAssignmentId(assignmentId);
     }
 
     @Override
     public BatchFeedback addBatchFeedback(BatchFeedback feedback) {
         feedback.setCreatedTime(new Date());
+        feedback.setFeedbackId(java.util.UUID.randomUUID().toString());
         // 可以在这里设置 feedback的 courseId (如果前端没传)
         // feedback.setCourseId(...);
         batchFeedbackMapper.insert(feedback);
@@ -122,15 +142,23 @@ public class GradingServiceImpl implements GradingService {
     }
 
     @Override
-    public List<AssignmentDTO> getAssignments(Integer assignmentId, String status) {
-        List<SubmissionStudentDTO> submissions = submissionMapper.findSubmissionsWithStudentByAssignmentId(assignmentId);
+    public List<AssignmentDTO> getAssignments(String assignmentId, String status) {
+        List<Submission> submissions = submissionMapper.findSubmissionsWithStudentByAssignmentId(assignmentId);
 
         return submissions.stream().map(submission -> {
             AssignmentDTO dto = new AssignmentDTO();
             dto.setSubmissionId(submission.getSubmissionId());
             dto.setAssignmentId(submission.getAssignmentId());
             dto.setStudentId(submission.getStudentId());
-            dto.setStudentName(submission.getStudentName());
+            
+            // 从users表查询学生真实姓名
+            User student = userMapper.findById(submission.getStudentId());
+            if (student != null) {
+                dto.setStudentName(student.getRealName() != null ? student.getRealName() : submission.getStudentId());
+            } else {
+                dto.setStudentName(submission.getStudentId());
+            }
+            
             dto.setTitle("作业标题"); // 需要从assignments表获取
             dto.setSubmitTime(submission.getSubmissionTime());
             dto.setStatus(mapStatus(submission.getStatus()));
@@ -146,70 +174,85 @@ public class GradingServiceImpl implements GradingService {
             // 设置满分
             dto.setMaxScore(new BigDecimal("100.00"));
 
-            // 获取批注
-            List<Annotation> annotations = annotationMapper.findBySubmissionId(submission.getSubmissionId());
-            // 转换为AnnotationDTO列表...
-
             return dto;
         }).collect(Collectors.toList());
     }
 
     private String mapStatus(String dbStatus) {
-        switch (dbStatus) {
-            case "submitted": return "SUBMITTED";
-            case "grading": return "GRADING";
-            case "graded": return "GRADED";
-            case "returned": return "RETURNED";
-            default: return "SUBMITTED";
-        }
+        if (dbStatus == null) return "SUBMITTED";
+        return switch (dbStatus) {
+            case "submitted" -> "SUBMITTED";
+            case "grading" -> "GRADING";
+            case "graded" -> "GRADED";
+            case "returned" -> "RETURNED";
+            case "late" -> "LATE";
+            default -> "SUBMITTED";
+        };
     }
 
     @Override
-    public GradingStandard getGradingStandard(Integer assignmentId) {
-        GradingStandard standard = gradingStandardMapper.findByAssignmentId(assignmentId);
-        if (standard != null) {
-            List<GradingItem> items = gradingStandardMapper.findItemsByStandardId(standard.getStandardId());
-            standard.setItems(items);
+    public GradingStandard getGradingStandard(String assignmentId) {
+        Assignment assignment = assignmentMapper.findById(assignmentId);
+        if (assignment == null) {
+            return null;
         }
+        GradingStandard standard = new GradingStandard();
+        standard.setAssignmentId(assignmentId);
+        standard.setName("评分标准");
+        standard.setTotalScore(assignment.getFullScore());
+        java.util.List<GradingItem> items = new java.util.ArrayList<>();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            java.util.List<java.util.Map<String,Object>> arr = mapper.readValue(assignment.getGradingCriteria(), new TypeReference<java.util.List<java.util.Map<String,Object>>>(){});
+            for (java.util.Map<String,Object> m : arr) {
+                GradingItem item = new GradingItem();
+                item.setName((String) m.get("name"));
+                Object sc = m.get("score");
+                if (sc != null) item.setScore(new BigDecimal(sc.toString()));
+                items.add(item);
+            }
+        } catch (Exception e) {
+            // 忽略解析错误，返回空列表
+        }
+        standard.setItems(items);
         return standard;
     }
 
     @Override
     @Transactional
     public GradingStandard saveGradingStandard(GradingStandard standard) {
-        Date now = new Date();
-        standard.setUpdateTime(now);
-
-        if (standard.getStandardId() == null) {
-            standard.setCreateTime(now);
-            gradingStandardMapper.insert(standard);
-        } else {
-            gradingStandardMapper.update(standard);
-            // 删除原有items
-            gradingStandardMapper.deleteItemsByStandardId(standard.getStandardId());
-        }
-
-        // 保存items
-        for (GradingItem item : standard.getItems()) {
-            item.setStandardId(standard.getStandardId());
-            if (item.getItemId() == null) {
-                gradingStandardMapper.insertItem(item);
-            } else {
-                gradingStandardMapper.updateItem(item);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            java.util.List<java.util.Map<String,Object>> arr = new java.util.ArrayList<>();
+            for (GradingItem item : standard.getItems()) {
+                java.util.Map<String,Object> m = new java.util.HashMap<>();
+                m.put("name", item.getName());
+                m.put("score", item.getScore());
+                arr.add(m);
             }
-        }
+            String json = mapper.writeValueAsString(arr);
 
+            Assignment assignment = assignmentMapper.findById(standard.getAssignmentId());
+            if (assignment != null) {
+                assignment.setGradingCriteria(json);
+                assignment.setFullScore(standard.getTotalScore());
+                assignmentMapper.update(assignment);
+            }
+        } catch (Exception e) {
+            // 忽略异常
+        }
         return standard;
     }
 
     @Override
-    public List<Annotation> getAnnotations(Integer submissionId) {
+    public List<Annotation> getAnnotations(String submissionId) {
         return annotationMapper.findBySubmissionId(submissionId);
     }
 
     @Override
     public Annotation addAnnotation(Annotation annotation) {
         annotation.setCreateTime(new Date());
+        annotation.setAnnotationId(java.util.UUID.randomUUID().toString());
         annotationMapper.insert(annotation);
         return annotation;
     }
@@ -220,14 +263,10 @@ public class GradingServiceImpl implements GradingService {
         return false;
     }
 
-    private void updateCommentForSubmission(Integer submissionId, String batchComment) {
-    }
 
-    private void addCommonIssues(Integer submissionId, List<String> commonIssues) {
-    }
 
     @Override
-    public AIGradingResult getAIGrading(Integer submissionId) {
+    public AIGradingResult getAIGrading(String submissionId) {
         // 模拟AI评分逻辑
         AIGradingResult result = new AIGradingResult();
         result.setScore(new BigDecimal("85.00"));
@@ -237,7 +276,7 @@ public class GradingServiceImpl implements GradingService {
     }
 
     @Override
-    public boolean markAsRecommended(Integer submissionId, Boolean isRecommended) {
+    public boolean markAsRecommended(String submissionId, Boolean isRecommended) {
         Grade grade = gradeMapper.findBySubmissionId(submissionId);
         if (grade != null) {
             grade.setIsTeacherRecommended(isRecommended);
@@ -247,7 +286,7 @@ public class GradingServiceImpl implements GradingService {
         return false;
     }
     @Override
-    public Assignment getAssignmentById(Integer assignmentId) {
+    public Assignment getAssignmentById(String assignmentId) {
         return assignmentMapper.findById(assignmentId);
     }
 
@@ -259,6 +298,7 @@ public class GradingServiceImpl implements GradingService {
     @Override
     public Assignment createAssignment(Assignment assignment) {
         assignment.setCreatedTime(new Date());
+        assignment.setAssignmentId(java.util.UUID.randomUUID().toString());
         assignmentMapper.insert(assignment);
         return assignment;
     }
@@ -270,12 +310,46 @@ public class GradingServiceImpl implements GradingService {
     }
 
     @Override
-    public boolean deleteAssignment(Integer assignmentId) {
+    public boolean deleteAssignment(String assignmentId) {
         try {
             assignmentMapper.delete(assignmentId);
             return true;
         } catch (Exception e) {
             return false;
         }
+    }
 
-}}
+    @Override
+    public boolean applyBatchFeedback(BatchOperationRequest request) {
+        try {
+            // 应用批量反馈到多个提交
+            if (request.getSubmissionIds() != null && request.getFeedbackId() != null) {
+                // TODO: 实现将反馈内容添加到指定提交的逻辑
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean deleteBatchFeedback(String feedbackId) {
+        try {
+            batchFeedbackMapper.delete(feedbackId);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean deleteAnnotation(String annotationId) {
+        try {
+            annotationMapper.delete(annotationId);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}

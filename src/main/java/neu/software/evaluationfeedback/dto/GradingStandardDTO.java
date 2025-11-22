@@ -10,7 +10,7 @@ import java.util.List;
 @Data
 public class GradingStandardDTO {
     private Integer standardId;
-    private Integer assignmentId;
+    private String assignmentId;
     private String name;
     private BigDecimal totalScore;
     private List<GradingItem> items;

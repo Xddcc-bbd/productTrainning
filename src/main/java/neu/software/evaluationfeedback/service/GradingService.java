@@ -10,7 +10,7 @@ public interface GradingService {
      * @param assignmentId 作业ID
      * @return 列表，包含提交、学生和已有评分信息
      */
-    List<SubmissionDetailDTO> getSubmissionsForGrading(Integer assignmentId);
+    List<SubmissionDetailDTO> getSubmissionsForGrading(String assignmentId);
 
     /**
      * 保存或更新评分
@@ -24,7 +24,7 @@ public interface GradingService {
      * @param assignmentId 作业ID
      * @return 模板列表
      */
-    List<BatchFeedback> getBatchFeedbacks(Integer assignmentId);
+    List<BatchFeedback> getBatchFeedbacks(String assignmentId);
 
     /**
      * 添加新的批量反馈模板
@@ -33,19 +33,19 @@ public interface GradingService {
      */
     BatchFeedback addBatchFeedback(BatchFeedback feedback);
 
-    List<AssignmentDTO> getAssignments(Integer assignmentId, String status);
-    GradingStandard getGradingStandard(Integer assignmentId);
+    List<AssignmentDTO> getAssignments(String assignmentId, String status);
+    GradingStandard getGradingStandard(String assignmentId);
     GradingStandard saveGradingStandard(GradingStandard standard);
-    List<Annotation> getAnnotations(Integer submissionId);
+    List<Annotation> getAnnotations(String submissionId);
     Annotation addAnnotation(Annotation annotation);
     boolean batchProcess(BatchOperationRequest request);
-    AIGradingResult getAIGrading(Integer submissionId);
-    boolean markAsRecommended(Integer submissionId, Boolean isRecommended);
+    AIGradingResult getAIGrading(String submissionId);
+    boolean markAsRecommended(String submissionId, Boolean isRecommended);
     // 在GradingService.java中添加
     /**
      * 获取作业基本信息
      */
-    Assignment getAssignmentById(Integer assignmentId);
+    Assignment getAssignmentById(String assignmentId);
 
     /**
      * 获取教师的所有作业列表
@@ -65,5 +65,20 @@ public interface GradingService {
     /**
      * 删除作业
      */
-    boolean deleteAssignment(Integer assignmentId);
+    boolean deleteAssignment(String assignmentId);
+
+    /**
+     * 应用批量反馈到多个作业
+     */
+    boolean applyBatchFeedback(BatchOperationRequest request);
+
+    /**
+     * 删除批量反馈模板
+     */
+    boolean deleteBatchFeedback(String feedbackId);
+
+    /**
+     * 删除批注
+     */
+    boolean deleteAnnotation(String annotationId);
 }

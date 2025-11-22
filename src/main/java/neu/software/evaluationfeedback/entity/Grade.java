@@ -13,8 +13,8 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Grade {
-    private Integer gradeId;
-    private Integer submissionId;
+    private String gradeId;
+    private String submissionId;
     private String teacherId;
     private BigDecimal score;
     private BigDecimal aiScore;

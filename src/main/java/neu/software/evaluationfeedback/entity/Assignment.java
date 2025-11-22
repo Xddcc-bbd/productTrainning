@@ -7,10 +7,10 @@ import java.util.Date;
 
 @Data
 public class Assignment {
-    private Integer assignmentId;
-    private Integer courseId;
+    private String assignmentId;
+    private String courseId;
     private String assignmentName;
-    private String assignmentType;
+    private Integer assignmentType;
     private String description;
     private BigDecimal fullScore;
     private String gradingCriteria; // JSON格式

@@ -32,10 +32,14 @@ public class GradingController {
      */
     @GetMapping("/assignment/{assignmentId}/submissions")
     public ResponseEntity<List<SubmissionDetailDTO>> getSubmissionsForGrading(
-            @PathVariable Integer assignmentId) {
-
-        List<SubmissionDetailDTO> submissions = gradingService.getSubmissionsForGrading(assignmentId);
-        return ResponseEntity.ok(submissions);
+            @PathVariable String assignmentId) {
+        try {
+            List<SubmissionDetailDTO> submissions = gradingService.getSubmissionsForGrading(assignmentId);
+            return ResponseEntity.ok(submissions);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -59,7 +63,7 @@ public class GradingController {
      * @return 批量反馈模板列表
      */
     @GetMapping("/assignment/{assignmentId}/batch-feedbacks")
-    public ResponseEntity<List<BatchFeedback>> getBatchFeedbacks(@PathVariable Integer assignmentId) {
+    public ResponseEntity<List<BatchFeedback>> getBatchFeedbacks(@PathVariable String assignmentId) {
         List<BatchFeedback> feedbacks = gradingService.getBatchFeedbacks(assignmentId);
         return ResponseEntity.ok(feedbacks);
     }
@@ -77,12 +81,34 @@ public class GradingController {
         BatchFeedback createdFeedback = gradingService.addBatchFeedback(feedback);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdFeedback);
     }
+
+    /**
+     * 功能点 3.2: 应用批量反馈到多个作业
+     * @param request 包含 feedbackId 和 submissionIds
+     * @return 是否成功
+     */
+    @PostMapping("/batch-feedback/apply")
+    public ResponseEntity<Boolean> applyBatchFeedback(@RequestBody BatchOperationRequest request) {
+        boolean success = gradingService.applyBatchFeedback(request);
+        return ResponseEntity.ok(success);
+    }
+
+    /**
+     * 功能点 3.2: 删除批量反馈模板
+     * @param feedbackId 反馈ID
+     * @return 是否成功
+     */
+    @DeleteMapping("/batch-feedback/{feedbackId}")
+    public ResponseEntity<Boolean> deleteBatchFeedback(@PathVariable String feedbackId) {
+        boolean success = gradingService.deleteBatchFeedback(feedbackId);
+        return ResponseEntity.ok(success);
+    }
     /**
      * 获取作业列表（支持状态筛选）
      */
     @GetMapping("/assignments")
     public ResponseEntity<List<AssignmentDTO>> getAssignments(
-            @RequestParam Integer assignmentId,
+            @RequestParam String assignmentId,
             @RequestParam(required = false) String status) {
         List<AssignmentDTO> assignments = gradingService.getAssignments(assignmentId, status);
         return ResponseEntity.ok(assignments);
@@ -101,7 +127,7 @@ public class GradingController {
      * 获取批注列表
      */
     @GetMapping("/submission/{submissionId}/annotations")
-    public ResponseEntity<List<Annotation>> getAnnotations(@PathVariable Integer submissionId) {
+    public ResponseEntity<List<Annotation>> getAnnotations(@PathVariable String submissionId) {
         List<Annotation> annotations = gradingService.getAnnotations(submissionId);
         return ResponseEntity.ok(annotations);
     }
@@ -116,10 +142,19 @@ public class GradingController {
     }
 
     /**
+     * 删除批注
+     */
+    @DeleteMapping("/annotation/{annotationId}")
+    public ResponseEntity<Boolean> deleteAnnotation(@PathVariable String annotationId) {
+        boolean success = gradingService.deleteAnnotation(annotationId);
+        return ResponseEntity.ok(success);
+    }
+
+    /**
      * 获取评分标准
      */
     @GetMapping("/assignment/{assignmentId}/grading-standard")
-    public ResponseEntity<GradingStandard> getGradingStandard(@PathVariable Integer assignmentId) {
+    public ResponseEntity<GradingStandard> getGradingStandard(@PathVariable String assignmentId) {
         GradingStandard standard = gradingService.getGradingStandard(assignmentId);
         return ResponseEntity.ok(standard);
     }
@@ -137,7 +172,7 @@ public class GradingController {
      * AI评分
      */
     @GetMapping("/submission/{submissionId}/ai-grading")
-    public ResponseEntity<AIGradingResult> getAIGrading(@PathVariable Integer submissionId) {
+    public ResponseEntity<AIGradingResult> getAIGrading(@PathVariable String submissionId) {
         AIGradingResult result = gradingService.getAIGrading(submissionId);
         return ResponseEntity.ok(result);
     }
@@ -147,7 +182,7 @@ public class GradingController {
      */
     @PutMapping("/submission/{submissionId}/recommend")
     public ResponseEntity<Boolean> markAsRecommended(
-            @PathVariable Integer submissionId,
+            @PathVariable String submissionId,
             @RequestParam Boolean isRecommended) {
         boolean success = gradingService.markAsRecommended(submissionId, isRecommended);
         return ResponseEntity.ok(success);
@@ -156,7 +191,7 @@ public class GradingController {
      * 获取作业基本信息
      */
     @GetMapping("/assignment/{assignmentId}")
-    public ResponseEntity<Assignment> getAssignment(@PathVariable Integer assignmentId) {
+    public ResponseEntity<Assignment> getAssignment(@PathVariable String assignmentId) {
         Assignment assignment = gradingService.getAssignmentById(assignmentId);
         return ResponseEntity.ok(assignment);
     }
@@ -184,7 +219,7 @@ public class GradingController {
      */
     @PutMapping("/assignment/{assignmentId}")
     public ResponseEntity<Assignment> updateAssignment(
-            @PathVariable Integer assignmentId,
+            @PathVariable String assignmentId,
             @RequestBody Assignment assignment) {
         assignment.setAssignmentId(assignmentId);
         Assignment updated = gradingService.updateAssignment(assignment);
@@ -195,7 +230,7 @@ public class GradingController {
      * 删除作业
      */
     @DeleteMapping("/assignment/{assignmentId}")
-    public ResponseEntity<Boolean> deleteAssignment(@PathVariable Integer assignmentId) {
+    public ResponseEntity<Boolean> deleteAssignment(@PathVariable String assignmentId) {
         boolean success = gradingService.deleteAssignment(assignmentId);
         return ResponseEntity.ok(success);
     }

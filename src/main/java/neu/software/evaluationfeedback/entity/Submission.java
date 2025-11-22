@@ -3,6 +3,7 @@ package neu.software.evaluationfeedback.entity;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -12,14 +13,17 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Submission {
-    private Integer submissionId;
-    private Integer assignmentId;
+    private String submissionId;
+    private String assignmentId;
     private String studentId;
-    private Integer teamId;
+    private String teamId;  // 修改为String类型以匹配数据库varchar
     private String contentUrl;
+    private BigDecimal contributionRate;
     private Date submissionTime;
     private String status;
     private Integer actualDuration;
     private Boolean isLate;
+    private Integer likeCount;
+    private Integer favoriteCount;
     private Date createdTime;
 }

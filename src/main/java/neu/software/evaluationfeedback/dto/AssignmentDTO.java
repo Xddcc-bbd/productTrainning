@@ -8,8 +8,8 @@ import java.util.List;
 
 @Data
 public class AssignmentDTO {
-    private Integer submissionId;
-    private Integer assignmentId;
+    private String submissionId;
+    private String assignmentId;
     private String studentId;
     private String studentName;
     private String title;

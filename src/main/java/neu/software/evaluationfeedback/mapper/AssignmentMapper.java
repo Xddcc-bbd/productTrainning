@@ -13,13 +13,13 @@ public interface AssignmentMapper {
      * 根据ID查询作业
      */
     @Select("SELECT * FROM assignments WHERE assignment_id = #{assignmentId}")
-    Assignment findById(Integer assignmentId);
+    Assignment findById(String assignmentId);
 
     /**
      * 根据课程ID查询所有作业
      */
     @Select("SELECT * FROM assignments WHERE course_id = #{courseId} ORDER BY created_time DESC")
-    List<Assignment> findByCourseId(Integer courseId);
+    List<Assignment> findByCourseId(String courseId);
 
     /**
      * 查询教师的所有作业
@@ -33,11 +33,10 @@ public interface AssignmentMapper {
     /**
      * 插入新作业
      */
-    @Insert("INSERT INTO assignments (course_id, assignment_name, assignment_type, description, " +
+    @Insert("INSERT INTO assignments (assignment_id, course_id, assignment_name, assignment_type, description, " +
             "full_score, grading_criteria, start_time, end_time, expected_duration, created_time) " +
-            "VALUES (#{courseId}, #{assignmentName}, #{assignmentType}, #{description}, " +
+            "VALUES (#{assignmentId}, #{courseId}, #{assignmentName}, #{assignmentType}, #{description}, " +
             "#{fullScore}, #{gradingCriteria}, #{startTime}, #{endTime}, #{expectedDuration}, #{createdTime})")
-    @Options(useGeneratedKeys = true, keyProperty = "assignmentId")
     int insert(Assignment assignment);
 
     /**
@@ -59,5 +58,5 @@ public interface AssignmentMapper {
      * 删除作业
      */
     @Delete("DELETE FROM assignments WHERE assignment_id = #{assignmentId}")
-    int delete(Integer assignmentId);
+    int delete(String assignmentId);
 }

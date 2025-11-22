@@ -8,7 +8,7 @@ import java.math.BigDecimal;
  */
 @Data
 public class GradeRequestDTO {
-    private Integer submissionId; // 必需，关联到具体的提交
+    private String submissionId; // 必需，关联到具体的提交
     private String teacherId;     // 必需，谁批改的
     private BigDecimal finalScore; // 最终得分
     private String textComment;    // 文字评语

@@ -12,9 +12,9 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BatchFeedback {
-    private Integer feedbackId;
-    private Integer courseId;
-    private Integer assignmentId;
+    private String feedbackId;
+    private String courseId;
+    private String assignmentId;
     private String feedbackType;
     private String content;
     private Integer usedCount;
