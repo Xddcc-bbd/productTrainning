@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the grading standard"
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of the grading standard"
+    },
+    "scores": {
+      "type": "array",
+      "description": "List of scores for the grading standard",
+      "items": {
+        "type": "number"
+      }
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the grading standard"
+    }
+  },
+  "required": ["id", "name", "scores"]
+}
