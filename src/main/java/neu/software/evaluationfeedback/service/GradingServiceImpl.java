@@ -24,15 +24,17 @@ public class GradingServiceImpl implements GradingService {
     private final AnnotationMapper annotationMapper;
     private final AssignmentMapper assignmentMapper;
     private final UserMapper userMapper;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public GradingServiceImpl(SubmissionMapper submissionMapper, GradeMapper gradeMapper, BatchFeedbackMapper batchFeedbackMapper, AnnotationMapper annotationMapper, AssignmentMapper assignmentMapper, UserMapper userMapper) {
+    public GradingServiceImpl(SubmissionMapper submissionMapper, GradeMapper gradeMapper, BatchFeedbackMapper batchFeedbackMapper, AnnotationMapper annotationMapper, AssignmentMapper assignmentMapper, UserMapper userMapper, ObjectMapper objectMapper) {
         this.submissionMapper = submissionMapper;
         this.gradeMapper = gradeMapper;
         this.batchFeedbackMapper = batchFeedbackMapper;
         this.annotationMapper = annotationMapper;
         this.assignmentMapper = assignmentMapper;
         this.userMapper = userMapper;
+        this.objectMapper = objectMapper;
     }
 
 
@@ -86,6 +88,20 @@ public class GradingServiceImpl implements GradingService {
     @Override
     @Transactional // 保证操作的原子性
     public Grade saveOrUpdateGrade(GradeRequestDTO gradeRequest) {
+        // 打印日志,帮助排查问题
+        System.out.println("收到评分请求 - submissionId: " + gradeRequest.getSubmissionId() + ", teacherId: [" + gradeRequest.getTeacherId() + "], 长度: " + (gradeRequest.getTeacherId() != null ? gradeRequest.getTeacherId().length() : "null"));
+        
+        // 验证teacherId是否存在
+        if (gradeRequest.getTeacherId() != null) {
+            User teacher = userMapper.findById(gradeRequest.getTeacherId());
+            if (teacher == null) {
+                System.err.println("错误: 在users表中找不到teacherId=[" + gradeRequest.getTeacherId() + "]");
+                throw new IllegalArgumentException("教师ID不存在: " + gradeRequest.getTeacherId());
+            } else {
+                System.out.println("找到教师: " + teacher.getRealName());
+            }
+        }
+        
         // 1. 检查是否已存在评分
         Grade existingGrade = gradeMapper.findBySubmissionId(gradeRequest.getSubmissionId());
 
@@ -93,7 +109,10 @@ public class GradingServiceImpl implements GradingService {
 
         if (existingGrade != null) {
             // 2. 更新
-            existingGrade.setTeacherId(gradeRequest.getTeacherId());
+            // 只有当传入了新的teacherId时才更新,否则保持原值
+            if (gradeRequest.getTeacherId() != null) {
+                existingGrade.setTeacherId(gradeRequest.getTeacherId());
+            }
             existingGrade.setFinalScore(gradeRequest.getFinalScore());
             existingGrade.setTextComment(gradeRequest.getTextComment());
             existingGrade.setVoiceCommentUrl(gradeRequest.getVoiceCommentUrl());
@@ -193,17 +212,28 @@ public class GradingServiceImpl implements GradingService {
     @Override
     public GradingStandard getGradingStandard(String assignmentId) {
         Assignment assignment = assignmentMapper.findById(assignmentId);
-        if (assignment == null) {
-            return null;
-        }
+
         GradingStandard standard = new GradingStandard();
         standard.setAssignmentId(assignmentId);
+
+        if (assignment == null) {
+            // 如果作业不存在，返回默认的空评分标准
+            standard.setName("评分标准");
+            standard.setTotalScore(new BigDecimal("100.00"));
+            standard.setItems(new java.util.ArrayList<>());
+            return standard;
+        }
+
         standard.setName("评分标准");
         standard.setTotalScore(assignment.getFullScore());
         java.util.List<GradingItem> items = new java.util.ArrayList<>();
+
         try {
             ObjectMapper mapper = new ObjectMapper();
-            java.util.List<java.util.Map<String,Object>> arr = mapper.readValue(assignment.getGradingCriteria(), new TypeReference<java.util.List<java.util.Map<String,Object>>>(){});
+            java.util.List<java.util.Map<String,Object>> arr = mapper.readValue(
+                    assignment.getGradingCriteria(),
+                    new TypeReference<java.util.List<java.util.Map<String,Object>>>(){}
+            );
             for (java.util.Map<String,Object> m : arr) {
                 GradingItem item = new GradingItem();
                 item.setName((String) m.get("name"));
@@ -212,8 +242,10 @@ public class GradingServiceImpl implements GradingService {
                 items.add(item);
             }
         } catch (Exception e) {
-            // 忽略解析错误，返回空列表
+            // 解析错误时返回空列表
+            System.err.println("解析评分标准失败: " + e.getMessage());
         }
+
         standard.setItems(items);
         return standard;
     }
@@ -352,4 +384,5 @@ public class GradingServiceImpl implements GradingService {
             return false;
         }
     }
+
 }

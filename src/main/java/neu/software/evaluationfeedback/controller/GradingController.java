@@ -53,8 +53,17 @@ public class GradingController {
         if (gradeRequest.getSubmissionId() == null || gradeRequest.getTeacherId() == null) {
             return ResponseEntity.badRequest().build(); // 必须有提交ID和教师ID
         }
-        Grade savedGrade = gradingService.saveOrUpdateGrade(gradeRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedGrade);
+        try {
+            Grade savedGrade = gradingService.saveOrUpdateGrade(gradeRequest);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedGrade);
+        } catch (IllegalArgumentException e) {
+            // 记录错误信息
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
