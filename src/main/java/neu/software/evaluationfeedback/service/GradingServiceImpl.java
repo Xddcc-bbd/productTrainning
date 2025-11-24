@@ -8,9 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -64,10 +62,20 @@ public class GradingServiceImpl implements GradingService {
                             dto.setActualDuration(submission.getActualDuration());
                             dto.setIsLate(submission.getIsLate());
                             dto.setCreatedTime(submission.getCreatedTime());
+                            dto.setScore(submission.getScore());
                             dto.setStudentName(submission.getStudentId()); // 暂时使用student_id
-                            
+
                             // 3. 查询该提交是否已有评分
                             Grade grade = gradeMapper.findBySubmissionId(submission.getSubmissionId());
+
+                            // ⭐ 关键修改：从 grades 表获取评分
+                            if (grade != null && grade.getFinalScore() != null) {
+                                dto.setScore(grade.getFinalScore());
+                                //System.out.println("✅ 找到评分: submission=" + submission.getSubmissionId() + ", score=" + grade.getFinalScore());
+                            } else {
+                                dto.setScore(null);  // 未评分则设为null
+                                //System.out.println("⚠️ 未找到评分: submission=" + submission.getSubmissionId());
+                            }
                             // 4. 组装成 DTO
                             return new SubmissionDetailDTO(dto, grade);
                         } catch (Exception e) {
@@ -254,24 +262,28 @@ public class GradingServiceImpl implements GradingService {
     @Transactional
     public GradingStandard saveGradingStandard(GradingStandard standard) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            java.util.List<java.util.Map<String,Object>> arr = new java.util.ArrayList<>();
-            for (GradingItem item : standard.getItems()) {
-                java.util.Map<String,Object> m = new java.util.HashMap<>();
-                m.put("name", item.getName());
-                m.put("score", item.getScore());
-                arr.add(m);
-            }
-            String json = mapper.writeValueAsString(arr);
-
             Assignment assignment = assignmentMapper.findById(standard.getAssignmentId());
             if (assignment != null) {
-                assignment.setGradingCriteria(json);
+                // 直接将items转换为简化的JSON数组格式
+                ObjectMapper mapper = new ObjectMapper();
+                List<Map<String, Object>> simpleItems = new ArrayList<>();
+
+                for (GradingItem item : standard.getItems()) {
+                    Map<String, Object> simpleItem = new HashMap<>();
+                    simpleItem.put("name", item.getName());
+                    simpleItem.put("score", item.getScore());
+                    simpleItems.add(simpleItem);
+                }
+
+                String jsonStr = mapper.writeValueAsString(simpleItems);
+
+                // 更新作业的grading_criteria字段
+                assignment.setGradingCriteria(jsonStr);
                 assignment.setFullScore(standard.getTotalScore());
                 assignmentMapper.update(assignment);
             }
         } catch (Exception e) {
-            // 忽略异常
+            e.printStackTrace();
         }
         return standard;
     }
@@ -384,5 +396,56 @@ public class GradingServiceImpl implements GradingService {
             return false;
         }
     }
+    @Override
+    public List<Map<String, Object>> getGradingCriteriaList(String assignmentId) {
+        Assignment assignment = assignmentMapper.findById(assignmentId);
+        if (assignment == null || assignment.getGradingCriteria() == null) {
+            return new ArrayList<>();
+        }
 
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.readValue(
+                    assignment.getGradingCriteria(),
+                    new TypeReference<List<Map<String, Object>>>(){}
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    @Override
+    @Transactional
+    public boolean saveGradingCriteriaList(String assignmentId, List<Map<String, Object>> criteria) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            String json = mapper.writeValueAsString(criteria);
+
+            Assignment assignment = assignmentMapper.findById(assignmentId);
+            if (assignment != null) {
+                assignment.setGradingCriteria(json);
+
+                // 计算总分
+                BigDecimal totalScore = criteria.stream()
+                        .map(m -> {
+                            Object scoreObj = m.get("score");
+                            if (scoreObj instanceof Number) {
+                                return new BigDecimal(scoreObj.toString());
+                            }
+                            return BigDecimal.ZERO;
+                        })
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                assignment.setFullScore(totalScore);
+                assignmentMapper.update(assignment);
+
+               return true;
+            }
+            return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

@@ -4,6 +4,8 @@ import neu.software.evaluationfeedback.dto.*;
 import neu.software.evaluationfeedback.entity.*;
 
 import java.util.List;
+import java.util.Map;
+
 public interface GradingService {
     /**
      * 获取待批改的作业列表详情
@@ -81,4 +83,8 @@ public interface GradingService {
      * 删除批注
      */
     boolean deleteAnnotation(String annotationId);
+
+    List<Map<String, Object>> getGradingCriteriaList(String assignmentId);
+
+    boolean saveGradingCriteriaList(String assignmentId, List<Map<String, Object>> criteria);
 }

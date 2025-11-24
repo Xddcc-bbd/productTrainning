@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 评价与反馈 (功能点第三部分)
@@ -160,21 +161,31 @@ public class GradingController {
     }
 
     /**
-     * 获取评分标准
+     * 获取评分标准 - 返回JSON数组
      */
     @GetMapping("/assignment/{assignmentId}/grading-standard")
-    public ResponseEntity<GradingStandard> getGradingStandard(@PathVariable String assignmentId) {
-        GradingStandard standard = gradingService.getGradingStandard(assignmentId);
-        return ResponseEntity.ok(standard);
+    public ResponseEntity<List<Map<String, Object>>> getGradingStandard(@PathVariable String assignmentId) {
+        List<Map<String, Object>> criteria = gradingService.getGradingCriteriaList(assignmentId);
+        return ResponseEntity.ok(criteria);
     }
 
     /**
      * 保存评分标准
      */
     @PostMapping("/grading-standard")
-    public ResponseEntity<GradingStandard> saveGradingStandard(@RequestBody GradingStandard standard) {
-        GradingStandard saved = gradingService.saveGradingStandard(standard);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<Boolean> saveGradingStandard(@RequestBody List<Map<String, Object>> criteria) {
+        // 从第一个元素获取assignmentId（如果存在）
+        String assignmentId = null;
+        if (!criteria.isEmpty() && criteria.get(0).containsKey("assignmentId")) {
+            assignmentId = (String) criteria.get(0).get("assignmentId");
+        }
+
+        if (assignmentId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        boolean success = gradingService.saveGradingCriteriaList(assignmentId, criteria);
+        return ResponseEntity.ok(success);
     }
 
     /**

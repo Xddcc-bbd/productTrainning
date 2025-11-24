@@ -26,4 +26,5 @@ public class Submission {
     private Integer likeCount;
     private Integer favoriteCount;
     private Date createdTime;
+    private BigDecimal score; // 成绩
 }
