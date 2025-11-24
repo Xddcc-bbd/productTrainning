@@ -37,31 +37,25 @@ struct SubmissionItem {
           console.log(`Checkbox 变化: ${this.submission.studentName}, 新状态: ${value}`);
 
           if (value) {
-            // 选中：添加到列表
             if (!this.selectedSubmissionIds.includes(this.submission.submissionId)) {
               this.selectedSubmissionIds.push(this.submission.submissionId);
-              console.log(`添加到选中列表: ${this.submission.submissionId}`);
-              console.log(`当前选中数量: ${this.selectedSubmissionIds.length}`);
             }
           } else {
-            // 取消选中：从列表移除
             const index = this.selectedSubmissionIds.indexOf(this.submission.submissionId);
             if (index > -1) {
               this.selectedSubmissionIds.splice(index, 1);
-              console.log(`从选中列表移除: ${this.submission.submissionId}`);
-              console.log(`当前选中数量: ${this.selectedSubmissionIds.length}`);
             }
           }
         })
         .width(20)
         .height(20)
         .margin({ left: 2 })
+      
       // 学生信息卡片
       Row({ space: 10 }) {
-        // 学生头像（圆形图标）
+        // 学生头像
         Column({ space: 4 }) {
           Stack() {
-            // 使用纯色背景
             Circle({ width: 44, height: 44 })
               .fill('#1890FF')
           }
@@ -73,6 +67,17 @@ struct SubmissionItem {
           Text(this.submission.studentId)
             .fontSize(11)
             .fontColor('#666666')
+          
+          // ⭐ 已推荐标签（显示在学号下方）
+          if (this.grade.isTeacherRecommended === 1) {
+            Text('已推荐')
+              .fontSize(10)
+              .fontColor('#FFFFFF')
+              .backgroundColor('#FF6B35')
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .borderRadius(8)
+              .margin({ top: 2 })
+          }
         }
         .alignItems(HorizontalAlign.Center)
 
@@ -99,7 +104,6 @@ struct SubmissionItem {
             .backgroundColor(this.submission.statusColor)
             .fontColor('#FFFFFF')
 
-          // 根据 submission.score 判断是否已评分
           if (this.submission.score !== undefined && this.submission.score !== null) {
             Row({ space: 2 }) {
               Text(this.submission.score.toString())
@@ -132,7 +136,6 @@ struct SubmissionItem {
         console.log('  学生姓名:', this.submission.studentName);
         console.log('  学号:', this.submission.studentId);
         console.log('  提交ID:', this.submission.submissionId);
-        console.log('  作业ID:', this.submission.assignmentId);
 
         if (!this.submission.submissionId) {
           console.error('❌ 错误：submissionId为空，无法跳转');
@@ -149,14 +152,10 @@ struct SubmissionItem {
             contentUrl: this.submission.contentUrl,
             submissionTime: this.submission.submissionTime,
             status: this.submission.status,
-            score: this.submission.score // 传递评分
+            score: this.submission.score
           }
         }).then(() => {
-          console.log('✅ 跳转成功，传递参数:', {
-            submissionId: this.submission.submissionId,
-            studentName: this.submission.studentName,
-            studentId: this.submission.studentId
-          });
+          console.log('✅ 跳转成功');
         }).catch((err: Error) => {
           console.error('❌ 跳转失败:', err);
         });
@@ -344,7 +343,16 @@ struct GradingManagementPage {
             g.textComment = (gradeInfo.textComment as string) || '';
             g.aiTextComment = (gradeInfo.aiTextComment as string) || '';
             g.voiceCommentUrl = (gradeInfo.voiceCommentUrl as string) || '';
-            g.isTeacherRecommended = (gradeInfo.isTeacherRecommended as number) || 0;
+            
+            // ⭐⭐⭐ 关键修复：确保 isTeacherRecommended 是 0 或 1
+            const rawRecommended: number | boolean | string | undefined = gradeInfo.isTeacherRecommended as number | boolean | string | undefined;
+            // 统一转换为 number 类型（0 或 1）
+            if (rawRecommended === true || Number(rawRecommended) === 1) {
+              g.isTeacherRecommended = 1;
+            } else {
+              g.isTeacherRecommended = 0;
+            }
+            
             g.gradingTime = (gradeInfo.gradingTime as string) || '';
             g.createdTime = (gradeInfo.createdTime as string) || '';
 

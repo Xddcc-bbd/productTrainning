@@ -2,7 +2,9 @@
 
 import { Submission } from '../model/Submission';
 import { Grade } from '../model/Grade';
+// 【修复1】加上大括号，因为报错提示没有 default export
 import { gradingService } from '../service/GradingService';
+
 import { assignmentService } from '../service/AssignmentService';
 import { HttpService } from '../common/HttpService';
 import router from '@ohos.router';
@@ -44,6 +46,18 @@ interface GradeInfo {
 interface SubmissionDetailDTO {
   submissionInfo: SubmissionInfo;
   gradeInfo?: GradeInfo;
+}
+
+// 定义路由参数接口
+interface RouterParams {
+  submissionId?: string;
+  assignmentId?: string;
+  studentId?: string;
+  studentName?: string;
+  contentUrl?: string;
+  submissionTime?: string;
+  status?: string;
+  score?: number;
 }
 
 @Component
@@ -157,20 +171,21 @@ struct DetailedGradingPage {
   @State showAIComment: boolean = true;
   @State isLoading: boolean = false;
   @State errorMessage: string = '';
+  @State isToggleProcessing: boolean = false; // 防止重复点击
 
   // 从路由参数获取
   private submissionId: string = '';
 
   aboutToAppear(): void {
-    // 获取路由参数
-    const params = router.getParams() as Record<string, Object>;
-    if (params && params['submissionId']) {
-      this.submissionId = params['submissionId'] as string;
+    // 获取路由参数 - 使用明确的类型
+    const params: RouterParams = router.getParams() as RouterParams;
+    if (params && params.submissionId) {
+      this.submissionId = params.submissionId;
       console.log('获取到提交ID:', this.submissionId);
 
       // 从路由参数中获取已有的评分
-      if (params['score'] !== undefined && params['score'] !== null) {
-        const score = params['score'] as number;
+      if (params.score !== undefined && params.score !== null) {
+        const score: number = params.score;
         this.teacherScore = score;
         console.log('获取到已有评分:', score);
       }
@@ -189,116 +204,80 @@ struct DetailedGradingPage {
       this.isLoading = true;
       console.log(`开始加载提交 ${this.submissionId} 的评分详情...`);
 
-      // 获取提交详情 - 从路由参数中获取
-      const params = router.getParams() as Record<string, Object>;
+      // 获取提交详情
+      const params: RouterParams = router.getParams() as RouterParams;
       if (params) {
-        console.log('📦 路由参数:', JSON.stringify(params));
-
-        // 从路由参数中构建submission对象
         const submission = new Submission();
-        submission.submissionId = (params['submissionId'] as string) || '';
-        submission.assignmentId = (params['assignmentId'] as string) || '';
-        submission.studentId = (params['studentId'] as string) || '';
-        submission.studentName = (params['studentName'] as string) || '';
-        submission.contentUrl = (params['contentUrl'] as string) || '';
-        submission.submissionTime = (params['submissionTime'] as string) || '';
-        submission.status = (params['status'] as string) || 'submitted';
-        // ⭐ 关键：获取路由参数中的score
-        if (params['score'] !== undefined && params['score'] !== null) {
-          submission.score = params['score'] as number;
-          console.log('✅ 从路由参数获取到评分:', submission.score);
+        submission.submissionId = params.submissionId || '';
+        submission.assignmentId = params.assignmentId || '';
+        submission.studentId = params.studentId || '';
+        submission.studentName = params.studentName || '';
+        submission.contentUrl = params.contentUrl || '';
+        submission.submissionTime = params.submissionTime || '';
+        submission.status = params.status || 'submitted';
+        if (params.score !== undefined && params.score !== null) {
+          submission.score = params.score;
         }
-
         this.submission = submission;
-        console.log('✅ 学生提交信息加载成功');
-        console.log('学生姓名:', this.submission.studentName);
-        console.log('学号:', this.submission.studentId);
-        console.log('提交时间:', this.submission.submissionTime);
       }
 
-      // ⭐ 从后端获取提交和评分信息
-      const assignmentId = this.submission.assignmentId;
+      const assignmentId: string = this.submission.assignmentId;
       if (assignmentId) {
-        console.log(`📡 从后端获取作业 ${assignmentId} 的提交列表...`);
-
         // 使用 gradingService 的方法获取数据
-        const submissions = await gradingService.getSubmissions(assignmentId);
+        const submissions: Submission[] = await gradingService.getSubmissions(assignmentId);
 
         // 找到当前提交
-        const currentSubmission = submissions.find(s => s.submissionId === this.submissionId);
+        const currentSubmission: Submission | undefined = submissions.find(s => s.submissionId === this.submissionId);
         if (currentSubmission) {
-          console.log('✅ 找到当前提交');
-          console.log('  学生:', currentSubmission.studentName);
-          console.log('  评分:', currentSubmission.score);
-
-          // 更新提交信息
           this.submission = currentSubmission;
-
-          // 设置教师评分
           if (currentSubmission.score !== undefined && currentSubmission.score !== null) {
             this.teacherScore = currentSubmission.score;
             this.grade.finalScore = currentSubmission.score;
             this.grade.score = currentSubmission.score;
-            console.log('✅ 设置教师评分:', this.teacherScore);
           } else {
-            console.log('⚠️ 该作业尚未评分');
             this.teacherScore = 0;
           }
         }
 
         // 尝试获取详细的评分信息（包括AI评分）
         try {
-          const http = HttpService.getInstance();
-          const detailResponse = await http.get<SubmissionDetailDTO[]>(
+          const http: HttpService = HttpService.getInstance();
+          const detailResponse: SubmissionDetailDTO[] = await http.get<SubmissionDetailDTO[]>(
             `/api/v1/grading/assignment/${assignmentId}/submissions`
           );
 
-          console.log('📦 获取到详细数据:', JSON.stringify(detailResponse));
-
           if (detailResponse && Array.isArray(detailResponse)) {
-            // 修复：使用类型安全的属性访问
-            const detail = detailResponse.find((item: SubmissionDetailDTO) =>
+            const detail: SubmissionDetailDTO | undefined = detailResponse.find((item: SubmissionDetailDTO) =>
             item.submissionInfo && item.submissionInfo.submissionId === this.submissionId
             );
 
-            // 修复：使用类型安全的属性访问
             if (detail && detail.gradeInfo) {
-              const gradeInfo = detail.gradeInfo;
-              console.log('🎯 找到gradeInfo:', JSON.stringify(gradeInfo));
+              const gradeInfo: GradeInfo = detail.gradeInfo;
 
-              // 设置AI评分和评语
-              if (gradeInfo.aiScore) {
-                this.grade.aiScore = gradeInfo.aiScore;
-                console.log('✅ 设置AI评分:', this.grade.aiScore);
-              }
+              if (gradeInfo.aiScore) this.grade.aiScore = gradeInfo.aiScore;
+              if (gradeInfo.aiTextComment) this.grade.aiTextComment = gradeInfo.aiTextComment;
+              if (gradeInfo.textComment) this.grade.textComment = gradeInfo.textComment;
 
-              if (gradeInfo.aiTextComment) {
-                this.grade.aiTextComment = gradeInfo.aiTextComment;
-                console.log('✅ 设置AI评语:', this.grade.aiTextComment);
-              }
-
-              // 设置文字评语
-              if (gradeInfo.textComment) {
-                this.grade.textComment = gradeInfo.textComment;
-                console.log('✅ 设置文字评语:', this.grade.textComment);
-              }
-
-              // 设置其他信息
               this.grade.gradeId = gradeInfo.gradeId;
               this.grade.teacherId = gradeInfo.teacherId;
-              // ⭐ 确保 isTeacherRecommended 是 number 类型（0 或 1）
-              this.grade.isTeacherRecommended = gradeInfo.isTeacherRecommended ? 1 : 0;
-              console.log('✅ 设置推荐状态:', this.grade.isTeacherRecommended);
+              
+              // ⭐ 简单转换：确保 isTeacherRecommended 是 0 或 1
+              const rawValue: number | boolean | string | undefined = gradeInfo.isTeacherRecommended as number | boolean | string | undefined;
+              this.grade.isTeacherRecommended = (rawValue === true || Number(rawValue) === 1) ? 1 : 0;
+              
+              console.log('✅ 加载成功，推荐状态:', this.grade.isTeacherRecommended);
             } else {
-              console.log('⚠️ 未找到gradeInfo');
+              this.grade.isTeacherRecommended = 0;
             }
           }
+          // 【修复2】catch去掉类型注解
         } catch (detailError) {
-          console.log('⚠️ 获取详细评分信息失败（不影响基本功能）:', detailError);
+          console.log('⚠️ 获取详细评分信息失败（不影响基本功能）');
+          this.grade.isTeacherRecommended = 0;
         }
       }
 
-      // 设置 grade 对象的基本信息（如果还没有）
+      // 设置 grade 对象的基本信息
       if (!this.grade.submissionId) {
         this.grade.submissionId = this.submissionId;
       }
@@ -306,9 +285,11 @@ struct DetailedGradingPage {
         this.grade.teacherId = 'teacher_zhao';
       }
 
+      // 【修复3】catch去掉类型注解
     } catch (error) {
-      console.error('❌ 加载评分详情失败:', error);
-      this.errorMessage = `加载失败: ${error}`;
+      const err = error as Error;
+      console.error('❌ 加载评分详情失败:', err);
+      this.errorMessage = `加载失败: ${err.message}`;
     } finally {
       this.isLoading = false;
     }
@@ -351,24 +332,12 @@ struct DetailedGradingPage {
   async saveGrade(): Promise<boolean> {
     try {
       console.log('💾 开始保存评分...');
-      console.log('  submissionId:', this.submission.submissionId || this.grade.submissionId);
-      console.log('  teacherScore:', this.teacherScore);
-
-      // 确保设置正确的teacherId
       this.grade.teacherId = 'teacher_zhao';
       this.grade.submissionId = this.submission.submissionId || this.grade.submissionId;
       this.grade.score = this.teacherScore;
       this.grade.finalScore = this.teacherScore;
 
-      console.log('📦 发送评分数据:', {
-        submissionId: this.grade.submissionId,
-        teacherId: this.grade.teacherId,
-        score: this.grade.score,
-        finalScore: this.grade.finalScore,
-        textComment: this.grade.textComment
-      });
-
-      const result = await gradingService.submitGrade(this.grade);
+      const result: Grade | null = await gradingService.submitGrade(this.grade);
       if (result) {
         console.log('✅ 评分保存成功');
         return true;
@@ -376,37 +345,67 @@ struct DetailedGradingPage {
         console.error('❌ 评分保存失败：后端返回 null');
         return false;
       }
+      // 【修复4】catch去掉类型注解
     } catch (error) {
-      console.error('❌ 评分保存失败:', error);
-      this.errorMessage = `保存失败: ${error}`;
+      const err = error as Error;
+      console.error('❌ 评分保存失败:', err);
+      this.errorMessage = `保存失败: ${err.message}`;
       return false;
     }
   }
 
-  async toggleRecommendation(): Promise<void> {
-    try {
-      const newStatus = this.grade.isTeacherRecommended === 1 ? 0 : 1;
-      console.log('🔄 切换推荐状态:', this.grade.isTeacherRecommended, '->', newStatus);
+  // 【修复5】重构的推荐切换逻辑：接收目标状态 isOn，解决开关乱跳问题
+  async toggleRecommendation(targetIsOn: boolean): Promise<void> {
+    // 1. 如果正在处理中，不重复执行
+    if (this.isToggleProcessing) {
+      return;
+    }
 
-      const result = await gradingService.markAsRecommended(
+    // 记录旧状态（0 或 1），用于失败回滚
+    const originalStatus = this.grade.isTeacherRecommended;
+
+    // 目标状态：true -> 1, false -> 0
+    const targetStatus = targetIsOn ? 1 : 0;
+
+    try {
+      this.isToggleProcessing = true;
+
+      // 2. 乐观更新：先更新UI，让用户看到开关立马切换成功
+      this.grade.isTeacherRecommended = targetStatus;
+      console.log(`🔄 切换推荐状态: ${originalStatus} -> ${targetStatus}`);
+
+      // 3. 调用 API
+      const result: boolean = await gradingService.markAsRecommended(
         this.submission.submissionId,
-        newStatus === 1
+        targetIsOn // 传递 boolean 值
       );
 
       if (result) {
-        // 更新本地状态
-        this.grade.isTeacherRecommended = newStatus;
-        console.log('✅ 推荐状态更新成功:', newStatus);
-
-        // ⭐ 同时保存到数据库（更新 grades 表）
-        this.grade.submissionId = this.submission.submissionId;
-        this.grade.teacherId = 'teacher_zhao';
-        this.grade.finalScore = this.teacherScore;
-        await gradingService.submitGrade(this.grade);
-        console.log('✅ 推荐状态已保存到数据库');
+        console.log('✅ 推荐状态同步成功');
+        // 如果有分数，顺便同步一下 Grade 表的其他字段
+        if (this.teacherScore > 0) {
+          this.grade.score = this.teacherScore;
+          await gradingService.submitGrade(this.grade);
+        }
+      } else {
+        // 只有明确返回 false 时才抛出异常去回滚
+        throw new Error('API 返回 false');
       }
+
     } catch (error) {
-      console.error('❌ 更新推荐状态失败:', error);
+      const err = error as Error;
+      console.error('❌ 更新推荐状态失败，正在回滚UI:', err);
+
+      // 4. 失败回滚：把状态改回原来的值
+      this.grade.isTeacherRecommended = originalStatus;
+
+      // 提示用户
+      this.errorMessage = '网络异常，推荐状态更新失败';
+    } finally {
+      // 5. 稍微延迟一点释放锁，避免快速点击造成的UI抖动
+      setTimeout(() => {
+        this.isToggleProcessing = false;
+      }, 300);
     }
   }
 
@@ -424,7 +423,6 @@ struct DetailedGradingPage {
         .justifyContent(FlexAlign.Center)
         .onClick(() => {
           router.back();
-          console.log('返回上一页');
         })
 
         Text(`评分 - ${this.submission.studentName}`)
@@ -440,9 +438,8 @@ struct DetailedGradingPage {
           .fontSize(14)
           .padding({ left: 16, right: 16 })
           .onClick(async () => {
-            const success = await this.saveGrade();
+            const success: boolean = await this.saveGrade();
             if (success) {
-              // 在onClick中调用router.back()，保持UI上下文
               router.back();
             }
           })
@@ -466,14 +463,19 @@ struct DetailedGradingPage {
         }
         .layoutWeight(1)
 
-        Toggle({ type: ToggleType.Switch, isOn: this.grade.isTeacherRecommended === 1 })
-          .onChange((isOn: boolean) => {
-            this.toggleRecommendation();
-          })
+        // 推荐开关（简单版）
+        Row() {
+          Toggle({ type: ToggleType.Switch, isOn: this.grade.isTeacherRecommended === 1 })
+            .onChange((isOn: boolean) => {
+              this.toggleRecommendation(isOn);
+            })
+            .enabled(!this.isToggleProcessing)
 
-        Text('推荐作品')
-          .fontSize(14)
-          .margin({ left: 8 })
+          Text('推荐作品')
+            .fontSize(14)
+            .margin({ left: 8 })
+        }
+        .alignItems(VerticalAlign.Center)
       }
       .padding({ left: 16, right: 16 })
 
@@ -544,7 +546,6 @@ struct DetailedGradingPage {
 
                   Blank()
 
-                  // ⭐ 采用AI评分按钮
                   Button('采用')
                     .type(ButtonType.Normal)
                     .fontSize(12)
@@ -554,12 +555,10 @@ struct DetailedGradingPage {
                     .borderRadius(4)
                     .onClick(() => {
                       this.teacherScore = this.grade.aiScore;
-                      console.log('✅ 采用AI评分:', this.grade.aiScore);
                     })
                 }
                 .width('100%')
 
-                // ⭐ 只在有AI评语时显示灰色框框
                 if (this.grade.aiTextComment && this.grade.aiTextComment.length > 0) {
                   Column() {
                     Text(this.grade.aiTextComment)
@@ -567,7 +566,6 @@ struct DetailedGradingPage {
                       .fontColor('#333333')
                       .width('100%')
 
-                    // ⭐ 采用AI评语按钮
                     Row() {
                       Blank()
                       Button('采用此评语')
@@ -580,7 +578,6 @@ struct DetailedGradingPage {
                         .margin({ top: 8 })
                         .onClick(() => {
                           this.grade.textComment = this.grade.aiTextComment;
-                          console.log('✅ 采用AI评语:', this.grade.aiTextComment);
                         })
                     }
                     .width('100%')

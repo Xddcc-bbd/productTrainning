@@ -32,10 +32,6 @@ interface AIGradingResult {
 interface EmptyRequest {
 }
 
-interface RecommendRequest {
-  isRecommended: boolean;
-}
-
 // 定义评分统计接口
 interface GradingStats {
   totalSubmissions: number;
@@ -58,14 +54,12 @@ export class GradingService {
         ApiConfig.SUBMISSIONS(assignmentId)
       );
 
-      console.log(`📦 后端返回原始数据:`, JSON.stringify(response));
+      // console.log(`📦 后端返回原始数据:`, JSON.stringify(response));
 
       if (response && response.length > 0) {
         console.log(`📊 处理 ${response.length} 个提交记录...`);
 
         const submissions = response.map((item: SubmissionDetailDTO, index: number): Submission => {
-          console.log(`  [原始数据 ${index}]:`, JSON.stringify(item));
-
           // 使用类型安全的属性访问方式
           const submissionInfo = item.submissionInfo;
           const gradeInfo = item.gradeInfo;
@@ -86,21 +80,11 @@ export class GradingService {
           sub.likeCount = submissionInfo.likeCount || 0;
           sub.favoriteCount = submissionInfo.favoriteCount || 0;
           sub.createdTime = submissionInfo.createdTime || '';
+
           // 从gradeInfo中获取分数（如果已评分）
           sub.score = gradeInfo?.finalScore ?? gradeInfo?.score ?? undefined;
 
-          console.log(`  [处理后 ${index}]: ID=${sub.submissionId}, 学生=${sub.studentName}, 学号=${sub.studentId}, 分数=${sub.score}`);
-          if (gradeInfo) {
-            console.log(`    gradeInfo存在: finalScore=${gradeInfo.finalScore}, score=${gradeInfo.score}`);
-          } else {
-            console.log(`    gradeInfo不存在，该作业未评分`);
-          }
           return sub;
-        });
-
-        console.log(`✅ 最终返回 ${submissions.length} 个 Submission 对象`);
-        submissions.forEach((sub, idx) => {
-          console.log(`  [${idx}] ID=${sub.submissionId}, 学生=${sub.studentName}, 学号=${sub.studentId}, 分数=${sub.score}`);
         });
 
         return submissions;
@@ -166,17 +150,11 @@ export class GradingService {
 
   /**
    * 获取评分详情
-   * 注意：后端没有单独的获取评分详情接口，需要通过submissions接口获取
    */
   async getGradeDetail(submissionId: string): Promise<Grade> {
     try {
       console.log(`🔍 获取评分详情: ${submissionId}`);
-
-      // 由于后端没有单独的获取评分详情接口，
-      // 我们返回一个默认的Grade对象，页面需要从 submissions 数据中获取详细信息
-      // 或者如果有单独的接口，可以在这里调用
-
-      // 创建一个默认的Grade对象
+      // 创建一个默认的Grade对象，实际逻辑依赖submissions列表
       const grade = new Grade({
         "submissionId": submissionId,
         "score": 0,
@@ -187,7 +165,6 @@ export class GradingService {
         "isTeacherRecommended": 0
       } as Record<string, Object>);
 
-      console.log(`✅ 创建默认评分对象:`, grade);
       return grade;
     } catch (error) {
       console.error('❌ 获取评分详情失败:', error);
@@ -197,11 +174,9 @@ export class GradingService {
 
   /**
    * 获取评分统计数据
-   * 注意：后端没有这个接口，前端从 submissions 数据中计算
    */
   async getGradingStats(assignmentId: string): Promise<GradingStats> {
     try {
-      console.log(`📊 计算评分统计: ${assignmentId}`);
       // 这个功能应该由前端基于submissions数据计算
       const stats: GradingStats = {
         totalSubmissions: 0,
@@ -222,17 +197,26 @@ export class GradingService {
    */
   async markAsRecommended(submissionId: string, isRecommended: boolean): Promise<boolean> {
     try {
+      console.log(`🎯 更新推荐状态: ${submissionId} -> ${isRecommended}`);
+
+      // PUT请求体为空，参数在URL中
       const emptyRequest: EmptyRequest = {};
-      await this.http.put<boolean>(
+
+      // 注意：ApiConfig.MARK_RECOMMEND 方法需要正确拼接 query 参数
+      const response = await this.http.put<boolean>(
         ApiConfig.MARK_RECOMMEND(submissionId, isRecommended),
         emptyRequest
       );
-      return true;
+
+      console.log(`✅ 推荐状态更新API响应:`, response);
+      // 如果后端返回的是 boolean 值，直接返回；如果是 null/void 但没报错，也视为成功
+      return response !== undefined ? response : true;
     } catch (error) {
-      console.error('标记推荐失败:', error);
+      console.error('❌ 标记推荐失败:', error);
       return false;
     }
   }
 }
 
+// ⭐ 关键修复：导出实例化对象，解决 "no exported member" 报错
 export const gradingService = new GradingService();

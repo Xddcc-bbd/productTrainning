@@ -122,9 +122,24 @@ struct StudentRecommendationPage {
     try {
       this.isLoading = true;
       console.log('加载学生列表...');
-      // 加载课程学生，这里使用courseId='course_01'
+      
+      // 1. 加载所有学生
       this.students = await studentService.getStudents('course_01');
       console.log(`✅ 加载到 ${this.students.length} 个学生`);
+      
+      // 2. 加载已推荐学生列表
+      const recommendedStudents = await studentService.getRecommendedStudents('teacher_zhao');
+      const recommendedIds = recommendedStudents.map(s => s.studentId);
+      console.log('已推荐学生ID列表:', recommendedIds);
+      
+      // 3. ⭐ 标记哪些学生已被推荐
+      this.students.forEach(student => {
+        student.isRecommended = recommendedIds.includes(student.studentId);
+        if (student.isRecommended) {
+          console.log(`✅ 学生 ${student.realName} (${student.studentId}) 已被推荐`);
+        }
+      });
+      
     } catch (error) {
       console.error('❌ 加载学生列表失败:', error);
     } finally {
