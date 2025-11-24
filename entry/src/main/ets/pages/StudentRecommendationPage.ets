@@ -72,24 +72,6 @@ struct StudentItem {
           .fontSize(12)
           .fontColor('#999999')
           .margin({ top: 4 })
-        
-        Row() {
-          Text('总分: ' + this.student.totalScore)
-            .fontSize(12)
-            .fontColor('#333333')
-          
-          Text('排名: ' + this.student.ranking)
-            .fontSize(12)
-            .fontColor('#333333')
-            .margin({ left: 16 })
-          
-          Text('完成率: ' + this.student.completionRate + '%')
-            .fontSize(12)
-            .fontColor('#333333')
-            .margin({ left: 16 })
-        }
-        .width('100%')
-        .margin({ top: 4 })
       }
       .layoutWeight(1)
       

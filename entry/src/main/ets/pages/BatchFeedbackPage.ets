@@ -116,7 +116,7 @@ struct BatchFeedbackPage {
       this.newFeedback.courseId = 'course_01';
       this.newFeedback.assignmentId = 'assign_01';
       this.newFeedback.feedbackType = this.selectedType;
-      this.newFeedback.createdBy = 'T001';
+      this.newFeedback.createdBy = 'teacher_zhao';
       this.newFeedback.createdTime = new Date().toISOString();
       
       const result = await batchFeedbackService.addBatchFeedback(this.newFeedback);

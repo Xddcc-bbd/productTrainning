@@ -131,8 +131,26 @@ export class HttpService {
 
       if (response.responseCode === 200 || response.responseCode === 201) {
         const result = response.result as string;
+        console.log(`[HTTP] Response from ${url}:`, result); // 添加响应日志
+        
         if (result && result.trim() !== '') {
-          return JSON.parse(result) as T;
+          try {
+            // 尝试解析JSON
+            return JSON.parse(result) as T;
+          } catch (parseError) {
+            console.error('[HTTP] JSON解析失败:', parseError);
+            console.error('[HTTP] 原始响应数据:', result);
+            
+            // 尝试处理可能的编码问题
+            try {
+              // 尝试使用不同的方式解析数据
+              const decodedResult = decodeURIComponent(escape(result));
+              return JSON.parse(decodedResult) as T;
+            } catch (decodeError) {
+              console.error('[HTTP] 编码转换失败:', decodeError);
+              throw new HttpError(0, `JSON解析失败: ${parseError.message}`);
+            }
+          }
         } else {
           // 对于空响应，返回null并让调用方处理
           return null as T;
@@ -141,7 +159,7 @@ export class HttpService {
         throw new HttpError(response.responseCode, `HTTP ${response.responseCode}: ${response.result}`);
       }
     } catch (error) {
-      console.error('HTTP请求失败:', error);
+      console.error('[HTTP] 请求失败:', error);
       if (error instanceof HttpError) {
         throw error;
       } else {

@@ -57,42 +57,52 @@ export class GradingService {
       const response = await this.http.get<SubmissionDetailDTO[]>(
         ApiConfig.SUBMISSIONS(assignmentId)
       );
-      
+
       console.log(`📦 后端返回原始数据:`, JSON.stringify(response));
-      
+
       if (response && response.length > 0) {
         console.log(`📊 处理 ${response.length} 个提交记录...`);
-        
-        const submissions = response.map((item, index) => {
+
+        const submissions = response.map((item: SubmissionDetailDTO, index: number): Submission => {
           console.log(`  [原始数据 ${index}]:`, JSON.stringify(item));
-          
-          // 后端返回的是 submissionInfo 和 gradeInfo
-          // studentName 在 submissionInfo 里面
+
+          // 使用类型安全的属性访问方式
+          const submissionInfo = item.submissionInfo;
+          const gradeInfo = item.gradeInfo;
+
           const sub = new Submission();
-          sub.submissionId = item.submissionInfo.submissionId || '';
-          sub.assignmentId = item.submissionInfo.assignmentId || '';
-          sub.studentId = item.submissionInfo.studentId || '';
-          sub.studentName = item.submissionInfo.studentName || '';  // 从studentInfo里获取
-          sub.teamId = item.submissionInfo.teamId || '';
-          sub.contentUrl = item.submissionInfo.contentUrl || '';
-          sub.contributionRate = item.submissionInfo.contributionRate || 1.0;
-          sub.submissionTime = item.submissionInfo.submissionTime || '';
-          sub.status = item.submissionInfo.status || 'submitted';
-          sub.actualDuration = item.submissionInfo.actualDuration || 0;
-          sub.isLate = item.submissionInfo.isLate || 0;
-          sub.likeCount = item.submissionInfo.likeCount || 0;
-          sub.favoriteCount = item.submissionInfo.favoriteCount || 0;
-          sub.createdTime = item.submissionInfo.createdTime || '';
-          
-          console.log(`  [处理后 ${index}]: ID=${sub.submissionId}, 学生=${sub.studentName}, 学号=${sub.studentId}`);
+          sub.submissionId = submissionInfo.submissionId || '';
+          sub.assignmentId = submissionInfo.assignmentId || '';
+          sub.studentId = submissionInfo.studentId || '';
+          sub.studentName = submissionInfo.studentName || '';
+          sub.teamId = submissionInfo.teamId || '';
+          sub.contentUrl = submissionInfo.contentUrl || '';
+          sub.contributionRate = submissionInfo.contributionRate || 1.0;
+          sub.submissionTime = submissionInfo.submissionTime || '';
+          sub.status = submissionInfo.status || 'submitted';
+          sub.actualDuration = submissionInfo.actualDuration || 0;
+          // 后端返回的isLate是boolean，转换为number
+          sub.isLate = submissionInfo.isLate ? 1 : 0;
+          sub.likeCount = submissionInfo.likeCount || 0;
+          sub.favoriteCount = submissionInfo.favoriteCount || 0;
+          sub.createdTime = submissionInfo.createdTime || '';
+          // 从gradeInfo中获取分数（如果已评分）
+          sub.score = gradeInfo?.finalScore ?? gradeInfo?.score ?? undefined;
+
+          console.log(`  [处理后 ${index}]: ID=${sub.submissionId}, 学生=${sub.studentName}, 学号=${sub.studentId}, 分数=${sub.score}`);
+          if (gradeInfo) {
+            console.log(`    gradeInfo存在: finalScore=${gradeInfo.finalScore}, score=${gradeInfo.score}`);
+          } else {
+            console.log(`    gradeInfo不存在，该作业未评分`);
+          }
           return sub;
         });
-        
+
         console.log(`✅ 最终返回 ${submissions.length} 个 Submission 对象`);
         submissions.forEach((sub, idx) => {
-          console.log(`  [${idx}] ID=${sub.submissionId}, 学生=${sub.studentName}, 学号=${sub.studentId}`);
+          console.log(`  [${idx}] ID=${sub.submissionId}, 学生=${sub.studentName}, 学号=${sub.studentId}, 分数=${sub.score}`);
         });
-        
+
         return submissions;
       }
       console.log('⚠️ 后端返回空数据');
@@ -119,7 +129,7 @@ export class GradingService {
         aiScore: grade.aiScore,
         aiTextComment: grade.aiTextComment
       };
-      
+
       const response = await this.http.post<Grade>(ApiConfig.SUBMIT_GRADE, gradeRequest);
       if (response) {
         return new Grade(response);
@@ -161,9 +171,12 @@ export class GradingService {
   async getGradeDetail(submissionId: string): Promise<Grade> {
     try {
       console.log(`🔍 获取评分详情: ${submissionId}`);
-      
-      // 从后端获取数据（需要先知道assignmentId）
-      // 这里使用一个简化的方法：返回空的Grade对象，由页面从 submissions 数据中获取
+
+      // 由于后端没有单独的获取评分详情接口，
+      // 我们返回一个默认的Grade对象，页面需要从 submissions 数据中获取详细信息
+      // 或者如果有单独的接口，可以在这里调用
+
+      // 创建一个默认的Grade对象
       const grade = new Grade({
         "submissionId": submissionId,
         "score": 0,
@@ -174,6 +187,7 @@ export class GradingService {
         "isTeacherRecommended": 0
       } as Record<string, Object>);
 
+      console.log(`✅ 创建默认评分对象:`, grade);
       return grade;
     } catch (error) {
       console.error('❌ 获取评分详情失败:', error);
@@ -204,35 +218,18 @@ export class GradingService {
 
   /**
    * 标记为教师推荐
-   * 对应后端: PUT /api/v1/grading/submission/{submissionId}/recommend?isRecommended=true
+   * 对应后端: PUT /api/v1/grading/submission/{submissionId}/recommend?isRecommended=true/false
    */
-  async markAsRecommended(submissionId: string): Promise<boolean> {
+  async markAsRecommended(submissionId: string, isRecommended: boolean): Promise<boolean> {
     try {
       const emptyRequest: EmptyRequest = {};
       await this.http.put<boolean>(
-        ApiConfig.MARK_RECOMMEND(submissionId, true),
+        ApiConfig.MARK_RECOMMEND(submissionId, isRecommended),
         emptyRequest
       );
       return true;
     } catch (error) {
       console.error('标记推荐失败:', error);
-      return false;
-    }
-  }
-
-  /**
-   * 取消教师推荐
-   */
-  async unmarkAsRecommended(submissionId: string): Promise<boolean> {
-    try {
-      const emptyRequest: EmptyRequest = {};
-      await this.http.put<boolean>(
-        ApiConfig.MARK_RECOMMEND(submissionId, false),
-        emptyRequest
-      );
-      return true;
-    } catch (error) {
-      console.error('取消推荐失败:', error);
       return false;
     }
   }

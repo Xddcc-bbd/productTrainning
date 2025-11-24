@@ -15,6 +15,7 @@ export class Submission {
   likeCount: number = 0;
   favoriteCount: number = 0;
   createdTime: string = '';
+  score?: number; // 评分，可选字段
 
   constructor(data?: Partial<Submission>) {
     if (data) {
@@ -33,6 +34,7 @@ export class Submission {
       if (data.contributionRate !== undefined) this.contributionRate = data.contributionRate;
       if (data.likeCount !== undefined) this.likeCount = data.likeCount;
       if (data.favoriteCount !== undefined) this.favoriteCount = data.favoriteCount;
+      if (data.score !== undefined) this.score = data.score;
     }
   }
 
@@ -40,6 +42,7 @@ export class Submission {
   get statusText(): string {
     switch (this.status) {
       case 'submitted': return '已提交';
+      case 'late': return '已逾时';
       case 'grading': return '批改中';
       case 'graded': return '已批改';
       case 'returned': return '已返回';
@@ -51,6 +54,7 @@ export class Submission {
   get statusColor(): ResourceColor {
     switch (this.status) {
       case 'submitted': return '#1890FF';
+      case 'late': return '#FF4D4F';
       case 'grading': return '#FAAD14';
       case 'graded': return '#52C41A';
       case 'returned': return '#722ED1';

@@ -41,6 +41,7 @@ export class ApiConfig {
   // ========== 评分标准相关 ==========
   static readonly GRADING_STANDARD = (assignmentId: string) => `${ApiConfig.BASE_PATH}/assignment/${assignmentId}/grading-standard`;
   static readonly SAVE_GRADING_STANDARD = `${ApiConfig.BASE_PATH}/grading-standard`;
+  static readonly DELETE_CRITERION = (criterionId: string) => `${ApiConfig.BASE_PATH}/grading-criteria/${criterionId}`;
   
   // ========== 学生推荐相关 ==========
   static readonly COURSE_STUDENTS = (courseId: string) => `${ApiConfig.STUDENT_BASE_PATH}/course/${courseId}`;

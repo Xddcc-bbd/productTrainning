@@ -35,11 +35,11 @@ struct Index {
 
 @Component
 struct NavigationCard {
-  private title: string = '';
-  private desc: string = '';
-  private icon: string = '';
-  private page: string = '';
-  private params?: Object;
+  @Prop title: string = '';
+  @Prop desc: string = '';
+  @Prop icon: string = '';
+  @Prop page: string = '';
+  @Prop params?: Object;
 
   build() {
     Column({ space: 10 }) {
