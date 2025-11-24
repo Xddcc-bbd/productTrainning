@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@MapperScan("neu.software.evaluationfeedback.mapper") // 扫描MyBatis Mapper接口
+@MapperScan("neu.software.evaluationfeedback.Mapper") // 扫描MyBatis Mapper接口
 public class EvaluationFeedbackApplication {
 
     public static void main(String[] args) {
